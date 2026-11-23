@@ -65,6 +65,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     }
     return <ProfileMissing onRetry={refreshProfile} />;
   }
+  if (profile.role === "ADMIN") return <Navigate to="/admin" replace />;
   if (profile.role === "STUDENT" && !profile.profile_completed) {
     return <Navigate to="/lengkapi-profil" replace />;
   }
@@ -86,10 +87,10 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
 }
 
 export function RequireIncompleteProfile({ children }: { children: ReactNode }) {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, refreshProfile } = useAuth();
   if (loading) return <FullPageLoading />;
   if (!session) return <Navigate to="/login" replace />;
-  if (!profile) return <ProfileMissing onRetry={async () => undefined} />;
+  if (!profile) return <ProfileMissing onRetry={refreshProfile} />;
   if (profile.role === "ADMIN" || profile.profile_completed) {
     return <Navigate to={profile.role === "ADMIN" ? "/admin" : "/dashboard"} replace />;
   }
