@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
-import { ProgressBar } from "./ui";
-import { playClick } from "@/lib/sfx";
-import { cardAudioUrl, playAudioOrSpeak, stopAllAudio } from "@/lib/tts";
+import { Alert, ProgressBar } from "./ui";
+import { playClick, playSuccess } from "@/lib/sfx";
+import { cardAudioUrl, playAudioOrSpeak, playCardSequence, stopAllAudio } from "@/lib/tts";
 
 const TYPE_META: Record<string, { label: string; icon: string; header: string; chip: string }> = {
   TEXT: { label: "Bacaan", icon: "📖", header: "from-sky to-sky-dark", chip: "bg-sky/10 text-sky-dark" },
@@ -25,13 +25,247 @@ const CARD_THEMES = [
   { card: "from-forest-dark/10 via-white to-sun/10", border: "border-forest/25", badge: "bg-gradient-to-br from-forest-dark to-sun", label: "text-forest-dark", ring: "hover:border-forest/40" },
 ] as const;
 
+type CardVariant = "editorial" | "checklist" | "timeline" | "bento" | "quote";
+type CardState = "ready" | "locked" | "playing" | "completed";
+type CardTheme = (typeof CARD_THEMES)[number];
+
 function cardTitle(text: string, index: number): string {
   const num = text.match(/^(\d+)\.\s+/);
   if (num) return `Perkara ${num[1]}`;
   if (/^maksud/i.test(text)) return "Maksud";
   if (/^dari segi/i.test(text)) return "Pengertian";
   if (/^syarat/i.test(text)) return "Syarat";
+  if (/^antara/i.test(text)) return "Antara";
+  if (/^islam/i.test(text)) return "Islam";
+  if (/^baligh/i.test(text)) return "Baligh";
+  if (/^berakal/i.test(text)) return "Berakal";
+  if (/^suci/i.test(text)) return "Suci";
   return `Huraian ${index + 1}`;
+}
+
+function splitLead(text: string): { lead: string; rest: string } {
+  const colon = text.search(/[:：]/);
+  if (colon > 0 && colon <= 70) {
+    return { lead: text.slice(0, colon).trim(), rest: text.slice(colon + 1).trim() };
+  }
+  const sentence = text.match(/^(.{12,90}?[.!?])\s+(.*)$/s);
+  if (sentence) return { lead: sentence[1].trim(), rest: sentence[2].trim() };
+  return { lead: "", rest: text };
+}
+
+function stripTitlePrefix(text: string, title: string): string {
+  if (/^(Huraian|Perkara|Antara)\b/i.test(title)) return text;
+  const lower = text.toLowerCase();
+  const t = title.toLowerCase();
+  if (lower.startsWith(t) && text.length > title.length) {
+    return text.slice(title.length).replace(/^[\s:：.-]+/, "");
+  }
+  return text;
+}
+
+function Equalizer() {
+  return (
+    <span aria-hidden className="flex items-end gap-0.5">
+      <span className="h-3 w-1 animate-pulse rounded-full bg-current" />
+      <span className="h-2 w-1 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
+      <span className="h-3.5 w-1 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
+    </span>
+  );
+}
+
+function CardControls({
+  state,
+  replayEnabled,
+  readyLabel,
+  onReplay,
+  index,
+}: {
+  state: CardState;
+  replayEnabled: boolean;
+  readyLabel: string;
+  onReplay: (index: number) => void;
+  index: number;
+}) {
+  if (state === "ready") {
+    return (
+      <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-forest px-4 py-2 text-xs font-bold text-white shadow-sm">
+        ▶ {readyLabel}
+      </span>
+    );
+  }
+  if (state === "playing") {
+    return (
+      <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-grape/10 px-3 py-1.5 text-xs font-bold text-grape">
+        <Equalizer /> Sedang dimainkan…
+      </span>
+    );
+  }
+  if (state === "locked") {
+    return (
+      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+        🔒 Menunggu giliran
+      </span>
+    );
+  }
+  return (
+    <span className="mt-3 flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center gap-1 rounded-full bg-mint-light px-3 py-1 text-[11px] font-bold text-mint-dark">
+        ✓ Selesai
+      </span>
+      {replayEnabled && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onReplay(index);
+          }}
+          className="transition-soft inline-flex items-center gap-1 rounded-full bg-forest/10 px-3 py-1 text-[11px] font-bold text-forest hover:bg-forest hover:text-white"
+        >
+          🔊 Dengar
+        </button>
+      )}
+    </span>
+  );
+}
+
+function CardContent({
+  variant,
+  state,
+  text,
+  index,
+  theme,
+  replayEnabled,
+  readyLabel,
+  onReplay,
+}: {
+  variant: CardVariant;
+  state: CardState;
+  text: string;
+  index: number;
+  theme: CardTheme;
+  replayEnabled: boolean;
+  readyLabel: string;
+  onReplay: (index: number) => void;
+}) {
+  const title = cardTitle(text, index);
+  const displayText = text.replace(/^\d+\.\s+/, "");
+  const bodyText = stripTitlePrefix(displayText, title);
+  const { lead, rest } = splitLead(displayText);
+  const showLabel = !lead || lead.toLowerCase() !== title.toLowerCase();
+  const locked = state === "locked";
+  const featured = state === "ready" || state === "playing";
+  const bodyClass = cn(
+    "mt-1 leading-6 text-slate-700",
+    locked && "line-clamp-2 opacity-60",
+    featured && "text-[15px] leading-7",
+  );
+  const controls = (
+    <CardControls
+      state={state}
+      replayEnabled={replayEnabled}
+      readyLabel={readyLabel}
+      onReplay={onReplay}
+      index={index}
+    />
+  );
+
+  if (variant === "checklist") {
+    return (
+      <div className="flex gap-3">
+        <span
+          aria-hidden
+          className={cn(
+            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-extrabold",
+            state === "completed" ? "border-mint bg-mint text-white" : cn(theme.border, theme.label),
+          )}
+        >
+          {state === "completed" ? "✓" : index + 1}
+        </span>
+        <div className="min-w-0 flex-1">
+          {showLabel && <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>}
+          {lead && <p className="font-display mt-1 text-base font-extrabold text-slate-900">{lead}</p>}
+          <p className={cn(bodyClass, lead && "mt-0.5")}>{lead ? rest : bodyText}</p>
+          {controls}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "timeline") {
+    return (
+      <div className="relative pl-11">
+        <span
+          aria-hidden
+          className={cn(
+            "absolute left-0 top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white shadow-sm",
+            state === "completed" ? "bg-mint" : theme.badge,
+          )}
+        >
+          {state === "completed" ? "✓" : index + 1}
+        </span>
+        <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>
+        <p className={cn(bodyClass, "mt-1")}>{bodyText}</p>
+        {controls}
+      </div>
+    );
+  }
+
+  if (variant === "bento") {
+    return (
+      <div className="relative">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-1 -top-5 font-display text-6xl font-black leading-none opacity-10"
+        >
+          {index + 1}
+        </span>
+        <div className="relative">
+          <div className="flex items-center justify-between gap-2">
+            <span aria-hidden className="text-2xl">{state === "completed" ? "✅" : CARD_ICONS[index % CARD_ICONS.length]}</span>
+            <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>
+          </div>
+          <p className={cn(bodyClass, "mt-2")}>{bodyText}</p>
+          {controls}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "quote") {
+    return (
+      <div className="relative text-center">
+        <span aria-hidden className="font-display absolute left-1 top-0 text-4xl leading-none text-sand/50">“</span>
+        <p
+          className={cn(
+            "mx-auto max-w-3xl font-display text-base font-semibold leading-8 text-slate-800 md:text-lg",
+            locked && "line-clamp-2 opacity-60",
+          )}
+        >
+          {displayText}
+        </p>
+        <div className="mt-2 flex justify-center">{controls}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-4">
+      <div className="hidden w-10 shrink-0 flex-col items-center md:flex">
+        <span className={cn("font-display text-2xl font-black", state === "completed" ? "text-mint" : "text-forest/25")}>
+          {state === "completed" ? "✓" : String(index + 1).padStart(2, "0")}
+        </span>
+        <span className="mt-2 h-full w-px bg-gradient-to-b from-forest/25 to-transparent" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", theme.label)}>{title}</p>
+          <span aria-hidden className="text-lg">{state === "completed" ? "✅" : CARD_ICONS[index % CARD_ICONS.length]}</span>
+        </div>
+        <p className={cn(bodyClass, "mt-1")}>{bodyText}</p>
+        {controls}
+      </div>
+    </div>
+  );
 }
 
 function LessonSlide({
@@ -39,16 +273,79 @@ function LessonSlide({
   completedIndices,
   onCardCompleted,
   revision,
+  variant,
 }: {
   slide: Slide;
   completedIndices: number[];
   onCardCompleted: (index: number) => void;
   revision: boolean;
+  variant: CardVariant;
 }) {
   const meta = TYPE_META[slide.type] ?? TYPE_META.TEXT;
-  const [open, setOpen] = useState<Record<number, boolean>>({});
   const moduleNo = Number(slide.id.match(/^m(\d+)/)?.[1] ?? 1);
   const theme = CARD_THEMES[(moduleNo - 1) % CARD_THEMES.length];
+  const firstIncomplete = slide.body.findIndex((_, i) => !completedIndices.includes(i));
+  const allComplete = revision || completedIndices.length >= slide.body.length;
+  const [sequenceState, setSequenceState] = useState<"idle" | "playing" | "paused" | "completed">(
+    allComplete ? "completed" : "idle",
+  );
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const replayEnabled = allComplete || sequenceState === "completed";
+  const readyLabel = sequenceState === "paused" ? "Sambung Dengar" : "Mula Dengar";
+
+  useEffect(() => {
+    if (completedIndices.length >= slide.body.length && sequenceState !== "completed") {
+      setSequenceState("completed");
+      setCurrentIndex(null);
+    }
+  }, [completedIndices.length, slide.body.length, sequenceState]);
+
+  function startSequence() {
+    if (allComplete) return;
+    const start = firstIncomplete >= 0 ? firstIncomplete : 0;
+    playClick();
+    setError(null);
+    setSequenceState("playing");
+    setCurrentIndex(start);
+    const items = slide.body.slice(start).map((text, offset) => ({
+      url: cardAudioUrl(slide.id, start + offset),
+      text,
+    }));
+    playCardSequence(items, {
+      onStart: (i) => setCurrentIndex(start + i),
+      onEnd: (i) => onCardCompleted(start + i),
+      onComplete: () => {
+        setSequenceState("completed");
+        setCurrentIndex(null);
+        playSuccess();
+      },
+      onError: (i) => {
+        setSequenceState("paused");
+        setCurrentIndex(start + i);
+        setError("Audio tidak dapat dimainkan. Tekan Sambung untuk cuba lagi.");
+      },
+    });
+  }
+
+  function pauseSequence() {
+    playClick();
+    stopAllAudio();
+    setSequenceState("paused");
+    setCurrentIndex(null);
+  }
+
+  function replay(index: number) {
+    playClick();
+    playAudioOrSpeak(cardAudioUrl(slide.id, index), slide.body[index]);
+  }
+
+  function stateFor(index: number): CardState {
+    if (revision || sequenceState === "completed" || completedIndices.includes(index)) return "completed";
+    if (sequenceState === "playing" && currentIndex === index) return "playing";
+    if ((sequenceState === "idle" || sequenceState === "paused") && index === firstIncomplete) return "ready";
+    return "locked";
+  }
 
   return (
     <div className="card-pop animate-fade-up overflow-hidden">
@@ -84,75 +381,82 @@ function LessonSlide({
           </div>
         )}
 
-        <div className="grid gap-3">
+        {sequenceState === "playing" && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-forest/15 bg-forest/5 px-4 py-3">
+            <p className="text-xs font-bold text-forest">
+              🔊 Sedang memainkan kad {(currentIndex ?? 0) + 1} / {slide.body.length}…
+            </p>
+            <button
+              onClick={pauseSequence}
+              className="transition-soft rounded-full bg-white px-4 py-1.5 text-[11px] font-bold text-forest shadow-sm hover:bg-forest hover:text-white"
+            >
+              ⏸ Hentikan
+            </button>
+          </div>
+        )}
+
+        {replayEnabled && (
+          <div className="mb-4 rounded-2xl bg-mint-light/60 px-4 py-3 text-xs font-semibold text-mint-dark">
+            ✅ Semua kad selesai. Anda boleh dengar satu-satu menggunakan butang 🔊 Dengar.
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4">
+            <Alert>{error}</Alert>
+          </div>
+        )}
+
+        <div className={cn("grid gap-3", variant === "bento" && "md:grid-cols-2", variant === "quote" && "gap-4")}>
           {slide.body.map((text, i) => {
-            const completed = completedIndices.includes(i) || revision;
-            const isOpen = open[i] || completed;
-            const icon = CARD_ICONS[i % CARD_ICONS.length];
+            const state = stateFor(i);
+            const borderClass =
+              state === "completed" ? "border-mint/50" : state === "playing" ? "border-grape/40" : variant === "quote" ? "border-sand/50" : theme.border;
+            const backgroundClass =
+              state === "completed"
+                ? "bg-mint-light/30"
+                : variant === "quote"
+                  ? "bg-gradient-to-br from-sun-light/70 via-white to-coral-light/40"
+                  : `bg-gradient-to-br ${theme.card}`;
             return (
-              <div key={i} className="flex items-stretch gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen((m) => ({ ...m, [i]: true }));
-                    if (!completed) onCardCompleted(i);
-                  }}
-                  className={cn(
-                    "transition-soft flex-1 rounded-2xl border-2 bg-gradient-to-br p-4 text-left shadow-sm hover:-translate-y-0.5",
-                    completed
-                      ? "border-mint/50 bg-mint-light/40"
-                      : `${theme.border} ${theme.card} ${theme.ring}`,
-                    i === 0 && "md:p-5",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white shadow-sm",
-                        completed ? "bg-mint" : theme.badge,
-                      )}
-                    >
-                      {completed ? "✓" : i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className={cn("text-[10px] font-bold uppercase tracking-widest", theme.label)}>
-                          {cardTitle(text, i)}
-                        </p>
-                        <span aria-hidden className="text-base opacity-70">
-                          {completed ? "✅" : icon}
-                        </span>
-                      </div>
-                      <p className={cn("mt-1 leading-6 text-slate-700", i === 0 ? "text-[15px]" : "text-sm", !isOpen && "line-clamp-2")}>
-                        {text}
-                      </p>
-                      {!completed && !isOpen && (
-                        <p className={cn("mt-2 text-[11px] font-semibold", theme.label)}>
-                          Klik untuk baca & tandakan selesai →
-                        </p>
-                      )}
-                      {completed && <p className="mt-2 text-[11px] font-semibold text-mint-dark">✓ Kad selesai</p>}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playClick();
-                    playAudioOrSpeak(cardAudioUrl(slide.id, i), text);
-                  }}
-                  className={cn(
-                    "transition-soft flex w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 bg-gradient-to-br text-center hover:-translate-y-0.5",
-                    theme.border,
-                    theme.card,
-                  )}
-                  aria-label={`Dengar penerangan kad ${i + 1}`}
-                  title="Dengar penerangan"
-                >
-                  <span aria-hidden className="text-lg">🔊</span>
-                  <span className={cn("text-[9px] font-bold", theme.label)}>Dengar</span>
-                </button>
+              <div
+                key={i}
+                role={state === "ready" ? "button" : undefined}
+                tabIndex={state === "ready" ? 0 : undefined}
+                onClick={state === "ready" ? startSequence : undefined}
+                onKeyDown={
+                  state === "ready"
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          startSequence();
+                        }
+                      }
+                    : undefined
+                }
+                className={cn(
+                  "transition-soft relative rounded-2xl border-2 p-4 md:p-5",
+                  variant === "editorial" && "border-l-4",
+                  variant === "bento" && "overflow-hidden",
+                  variant === "timeline" &&
+                    "before:absolute before:left-[31px] before:top-12 before:bottom-2 before:w-px before:bg-slate-200 before:content-['']",
+                  borderClass,
+                  backgroundClass,
+                  state === "ready" && "cursor-pointer ring-2 ring-forest/15 hover:-translate-y-0.5 hover:shadow-md",
+                  state === "playing" && "ring-2 ring-grape/15 shadow-lg",
+                  state === "locked" && "opacity-80",
+                )}
+              >
+                <CardContent
+                  variant={variant}
+                  state={state}
+                  text={text}
+                  index={i}
+                  theme={theme}
+                  replayEnabled={replayEnabled}
+                  readyLabel={readyLabel}
+                  onReplay={replay}
+                />
               </div>
             );
           })}
@@ -175,6 +479,7 @@ export default function SlideViewer({
   const [idx, setIdx] = useState(0);
   const [sessionPassed, setSessionPassed] = useState<Set<string>>(() => new Set());
   const [completedCards, setCompletedCards] = useState<Record<string, number[]>>({});
+  const previousSlideRef = useRef<string | null>(null);
 
   const initialSet = useMemo(() => new Set(initiallyViewed), [initiallyViewed]);
   const slide = module.slides[idx];
@@ -186,6 +491,18 @@ export default function SlideViewer({
   const isLast = idx === total - 1;
   const pct = total === 0 ? 0 : Math.round(((idx + 1) / total) * 100);
 
+  const moduleVariant: CardVariant =
+    module.order === 2
+      ? "checklist"
+      : module.order === 3
+        ? "timeline"
+        : module.order === 4 || module.order === 6
+          ? "bento"
+          : module.order === 7
+            ? "quote"
+            : "editorial";
+  const variant: CardVariant = slide.type === "QUOTE" || slide.type === "SUMMARY" ? "quote" : moduleVariant;
+
   useEffect(() => {
     stopAllAudio();
   }, [idx]);
@@ -194,6 +511,31 @@ export default function SlideViewer({
     return () => stopAllAudio();
   }, []);
 
+  useEffect(() => {
+    if (revision) return;
+    if (slide.body.length > 0 && completedForSlide.length >= slide.body.length && !sessionPassed.has(slide.id)) {
+      setSessionPassed((m) => (m.has(slide.id) ? m : new Set(m).add(slide.id)));
+      onMarkViewed(slide.id);
+    }
+  }, [completedForSlide.length, slide.body.length, slide.id, revision, sessionPassed, onMarkViewed]);
+
+  useEffect(() => {
+    const prev = previousSlideRef.current;
+    if (prev && prev !== slide.id) {
+      const prevSlide = module.slides.find((s) => s.id === prev);
+      const prevCompleted = completedCards[prev] ?? [];
+      if (prevSlide && prevCompleted.length < prevSlide.body.length && !sessionPassed.has(prev)) {
+        setCompletedCards((m) => {
+          if (!(prev in m)) return m;
+          const next = { ...m };
+          delete next[prev];
+          return next;
+        });
+      }
+    }
+    previousSlideRef.current = slide.id;
+  }, [slide.id, module.slides, completedCards, sessionPassed]);
+
   function completeSlide(slideId: string) {
     playClick();
     setSessionPassed((m) => (m.has(slideId) ? m : new Set(m).add(slideId)));
@@ -201,7 +543,6 @@ export default function SlideViewer({
   }
 
   function markCardCompleted(index: number) {
-    playClick();
     setCompletedCards((m) => {
       const arr = m[slide.id] ?? [];
       if (arr.includes(index)) return m;
@@ -220,7 +561,7 @@ export default function SlideViewer({
   ) : (
     <button
       disabled
-      title="Selesaikan semua kad penerangan dahulu"
+      title="Dengar semua kad sehingga habis dahulu"
       className="cursor-not-allowed rounded-full bg-slate-200 px-7 py-3 text-sm font-bold tracking-wide text-slate-400"
     >
       🔒 JAWAB KUIZ
@@ -265,6 +606,7 @@ export default function SlideViewer({
         completedIndices={completedForSlide}
         onCardCompleted={markCardCompleted}
         revision={revision}
+        variant={variant}
       />
 
       <div className="mt-6 flex items-center justify-between gap-3">
@@ -287,7 +629,7 @@ export default function SlideViewer({
               setIdx((i) => i + 1);
             }}
             disabled={!done}
-            title={done ? "Ke slaid seterusnya" : "Tekan setiap kad dahulu"}
+            title={done ? "Ke slaid seterusnya" : "Dengar semua kad sehingga habis dahulu"}
             className={cn(
               "transition-soft rounded-full px-7 py-3 text-sm font-bold tracking-wide",
               done
@@ -305,11 +647,11 @@ export default function SlideViewer({
       {!done && (
         <div className="mt-4 flex items-start justify-end gap-2 text-right text-xs font-medium text-sand-dark">
           <span aria-hidden>🔒</span>
-          <span>Tekan setiap kad penerangan untuk membuka slaid seterusnya.</span>
+          <span>Tekan kad pertama dan dengar sehingga kad terakhir untuk membuka slaid seterusnya.</span>
         </div>
       )}
       {revision && (
-        <p className="mt-4 text-right text-xs font-medium text-sky-dark">📖 Mod ulangkaji — anda bebas meneroka slaid ini.</p>
+        <p className="mt-4 text-right text-xs font-medium text-sky-dark">📖 Mod ulangkaji — anda bebas mendengar kad satu-satu.</p>
       )}
       {done && !revision && (
         <p className="mt-4 text-right text-xs font-medium text-mint-dark">✅ Semua kad selesai — anda boleh teruskan.</p>

@@ -13,6 +13,8 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 - **Google Sheets sync** setiap kali hantar + butang sync semua
 - **Kesan bunyi** klik / betul / berjaya / salah / ralat
 - **TTS Bahasa Melayu** pada setiap kad & soalan (audio Google Cloud TTS; fallback Web Speech API)
+- **Layout kad berbeza** mengikut modul: editorial, checklist, timeline, bento, quote
+- **Audio auto-sambung**: tekan kad pertama → kad 1, 2, 3… dimainkan dan ditanda selesai automatik
 - Admin: pelajar, keputusan, ranking, sijil, tetapan Sheet
 
 ## URL
@@ -169,6 +171,13 @@ integrations/google-sheets/  # Apps Script webhook
   `src/content/course.ts` + `npm run generate:keys`.
 - Jika mahu tambah/edit soalan, ubah fail kandungan, jana semula seed, dan jalankan
   `003_seed.sql` semula.
+- **Aliran audio kad:**
+  - Pelajar tekan kad pertama (**Mula Dengar**).
+  - Audio kad 1 dimainkan, kemudian auto-sambung ke kad 2, 3, dan seterusnya.
+  - Setiap kad ditanda **✓ Selesai** selepas audionya tamat.
+  - Butang **⏸ Hentikan** menghentikan audio; kad yang belum selesai menunjukkan **Sambung Dengar**.
+  - Selepas semua kad selesai, butang **🔊 Dengar** satu-satu muncul dan butang **Seterusnya** dibuka.
+  - Jika pelajar keluar slaid di tengah, slaid perlu dimulakan semula dari kad pertama.
 - **TTS** menggunakan audio MP3 Google Cloud TTS yang dijana melalui
   `scripts/generate-google-tts.mjs` dan disimpan di `public/audio/tts/`. Key
   hanya digunakan semasa penjanaan; ia tidak dimasukkan ke frontend. Jika fail
