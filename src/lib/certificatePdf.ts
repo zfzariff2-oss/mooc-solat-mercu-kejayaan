@@ -33,7 +33,12 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
   cx("SIJIL PENYELESAIAN", serif, 38, height - 140);
   cx(input.courseTitle.toUpperCase(), sans, 15, height - 172, gold);
   cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 222);
-  cx(upperName(input.studentName), serif, 32, height - 272);
+  const displayName = upperName(input.studentName);
+  let nameSize = 32;
+  while (nameSize > 16 && serif.widthOfTextAtSize(displayName, nameSize) > width - 160) {
+    nameSize -= 2;
+  }
+  cx(displayName, serif, nameSize, height - 272);
   if (input.className) cx(`Kelas: ${input.className}`, sansBold, 14, height - 305);
   cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(input.issuedAt)}`, sans, 12, height - 332);
   cx(`No. Sijil: ${input.certificateNumber}`, sans, 12, height - 356);

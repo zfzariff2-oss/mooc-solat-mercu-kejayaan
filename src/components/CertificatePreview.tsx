@@ -24,7 +24,7 @@ export default function CertificatePreview({
           <p className="font-display text-4xl md:text-5xl">SIJIL PENYELESAIAN</p>
           <p className="mt-2 text-sm tracking-[0.2em] text-[#a68b4f]">{courseTitle.toUpperCase()}</p>
           <p className="mt-6 text-sm text-stone-500">Dengan ini disahkan bahawa</p>
-          <p className="font-display mt-2 text-3xl md:text-4xl">{upperName(studentName)}</p>
+          <p className="font-display mt-2 break-words text-3xl md:text-4xl">{upperName(studentName)}</p>
           {className && <p className="mt-2 font-mono text-sm text-stone-500">Kelas: {className}</p>}
           <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-stone-600">
             telah berjaya menamatkan kursus pada {formatDateMY(issuedAt)}.
