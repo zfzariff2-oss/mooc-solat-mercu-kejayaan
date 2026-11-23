@@ -594,9 +594,9 @@ begin
    where id = v_attempt.id;
 
   insert into public.certificates
-    (certificate_number, student_id, issued_at, score, total, duration_seconds)
+    (certificate_number, student_id, student_name, class_name, issued_at, score, total, duration_seconds)
   values
-    (public.next_certificate_number(), auth.uid(), v_submitted_at, v_score, v_total, v_duration)
+    (public.next_certificate_number(), auth.uid(), v_profile.full_name, v_profile.class_name, v_submitted_at, v_score, v_total, v_duration)
   on conflict (student_id) do nothing;
 
   select certificate_number into v_cert
@@ -773,6 +773,8 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'certificate_number', certificate_number,
+    'student_name', student_name,
+    'class_name', class_name,
     'issued_at', issued_at,
     'score', score,
     'total', total,
@@ -796,8 +798,8 @@ as $$
     (select jsonb_build_object(
        'valid', true,
        'certificate_number', c.certificate_number,
-       'student_name', p.full_name,
-       'class_name', p.class_name,
+       'student_name', coalesce(c.student_name, p.full_name),
+       'class_name', coalesce(c.class_name, p.class_name),
        'issued_at', c.issued_at,
        'score', c.score,
        'total', c.total,
@@ -1058,8 +1060,8 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
            'certificate_number', c.certificate_number,
            'student_id', c.student_id,
-           'student_name', p.full_name,
-           'class_name', p.class_name,
+           'student_name', coalesce(c.student_name, p.full_name),
+           'class_name', coalesce(c.class_name, p.class_name),
            'email', p.email,
            'issued_at', c.issued_at,
            'score', c.score,

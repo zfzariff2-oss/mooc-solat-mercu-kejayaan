@@ -23,6 +23,8 @@ export interface LessonProgress {
 
 export interface CertificateInfo {
   certificate_number: string;
+  student_name?: string | null;
+  class_name?: string | null;
   issued_at: string;
   score: number | null;
   total: number | null;

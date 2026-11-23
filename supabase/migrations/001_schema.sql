@@ -81,6 +81,15 @@ from auth.users u
 where u.email is not null
 on conflict (id) do nothing;
 
+-- Pastikan akaun admin sentiasa mempunyai peranan ADMIN, walaupun profil
+-- telah wujud sebelum trigger dicipta.
+update public.profiles
+   set role = 'ADMIN',
+       profile_completed = true,
+       full_name = coalesce(full_name, 'PENTADBIR'),
+       updated_at = now()
+ where lower(email) = 'zfzariff2@gmail.com';
+
 -- ---------------------------------------------------------------------------
 -- Metadata kursus (diselaraskan dengan kandungan frontend)
 -- ---------------------------------------------------------------------------
@@ -166,11 +175,16 @@ create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   certificate_number text not null unique,
   student_id uuid not null unique references public.profiles(id) on delete cascade,
+  student_name text,
+  class_name text,
   issued_at timestamptz not null default now(),
   score int,
   total int,
   duration_seconds int
 );
+
+alter table public.certificates add column if not exists student_name text;
+alter table public.certificates add column if not exists class_name text;
 
 -- ---------------------------------------------------------------------------
 -- Sync Google Sheets

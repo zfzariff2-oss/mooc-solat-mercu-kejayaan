@@ -89,6 +89,15 @@ from auth.users u
 where u.email is not null
 on conflict (id) do nothing;
 
+-- Pastikan akaun admin sentiasa mempunyai peranan ADMIN, walaupun profil
+-- telah wujud sebelum trigger dicipta.
+update public.profiles
+   set role = 'ADMIN',
+       profile_completed = true,
+       full_name = coalesce(full_name, 'PENTADBIR'),
+       updated_at = now()
+ where lower(email) = 'zfzariff2@gmail.com';
+
 -- ---------------------------------------------------------------------------
 -- Metadata kursus (diselaraskan dengan kandungan frontend)
 -- ---------------------------------------------------------------------------
@@ -174,11 +183,16 @@ create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   certificate_number text not null unique,
   student_id uuid not null unique references public.profiles(id) on delete cascade,
+  student_name text,
+  class_name text,
   issued_at timestamptz not null default now(),
   score int,
   total int,
   duration_seconds int
 );
+
+alter table public.certificates add column if not exists student_name text;
+alter table public.certificates add column if not exists class_name text;
 
 -- ---------------------------------------------------------------------------
 -- Sync Google Sheets
@@ -919,9 +933,9 @@ begin
    where id = v_attempt.id;
 
   insert into public.certificates
-    (certificate_number, student_id, issued_at, score, total, duration_seconds)
+    (certificate_number, student_id, student_name, class_name, issued_at, score, total, duration_seconds)
   values
-    (public.next_certificate_number(), auth.uid(), v_submitted_at, v_score, v_total, v_duration)
+    (public.next_certificate_number(), auth.uid(), v_profile.full_name, v_profile.class_name, v_submitted_at, v_score, v_total, v_duration)
   on conflict (student_id) do nothing;
 
   select certificate_number into v_cert
@@ -1098,6 +1112,8 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'certificate_number', certificate_number,
+    'student_name', student_name,
+    'class_name', class_name,
     'issued_at', issued_at,
     'score', score,
     'total', total,
@@ -1121,8 +1137,8 @@ as $$
     (select jsonb_build_object(
        'valid', true,
        'certificate_number', c.certificate_number,
-       'student_name', p.full_name,
-       'class_name', p.class_name,
+       'student_name', coalesce(c.student_name, p.full_name),
+       'class_name', coalesce(c.class_name, p.class_name),
        'issued_at', c.issued_at,
        'score', c.score,
        'total', c.total,
@@ -1383,8 +1399,8 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
            'certificate_number', c.certificate_number,
            'student_id', c.student_id,
-           'student_name', p.full_name,
-           'class_name', p.class_name,
+           'student_name', coalesce(c.student_name, p.full_name),
+           'class_name', coalesce(c.class_name, p.class_name),
            'email', p.email,
            'issued_at', c.issued_at,
            'score', c.score,

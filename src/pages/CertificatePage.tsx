@@ -22,8 +22,8 @@ export default function CertificatePage() {
     setPdfError(null);
     try {
       await downloadCertificatePdf({
-        studentName: data.profile.full_name ?? "Pelajar",
-        className: data.profile.class_name,
+        studentName: cert.student_name ?? data.profile.full_name ?? "Pelajar",
+        className: cert.class_name ?? data.profile.class_name,
         certificateNumber: cert.certificate_number,
         issuedAt: cert.issued_at,
         courseTitle: COURSE.title,
@@ -57,8 +57,8 @@ export default function CertificatePage() {
       ) : cert ? (
         <div className="mt-6 animate-fade-up">
           <CertificatePreview
-            studentName={data.profile.full_name ?? "Pelajar"}
-            className={data.profile.class_name}
+            studentName={cert.student_name ?? data.profile.full_name ?? "Pelajar"}
+            className={cert.class_name ?? data.profile.class_name}
             certificateNumber={cert.certificate_number}
             issuedAt={cert.issued_at}
             courseTitle={COURSE.title}
