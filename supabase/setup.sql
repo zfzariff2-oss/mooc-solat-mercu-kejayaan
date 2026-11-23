@@ -1508,7 +1508,7 @@ revoke all on function public.set_sheet_webhook(text, text) from public;
 grant execute on function public.set_sheet_webhook(text, text) to authenticated;
 
 create or replace function public.enqueue_sheet_sync(p_event text, p_payload jsonb)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
@@ -1526,7 +1526,7 @@ begin
   select value into v_secret from public.app_settings where key = 'sheet_webhook_secret';
 
   if v_url is null or v_url = '' then
-    return;
+    return jsonb_build_object('ok', false, 'error', 'URL webhook Google Sheets belum ditetapkan.');
   end if;
 
   begin
@@ -1539,10 +1539,12 @@ begin
     update public.sheet_sync_queue
        set status = 'SENT', sent_at = now(), attempts = attempts + 1
      where id = v_id;
+    return jsonb_build_object('ok', true);
   exception when others then
     update public.sheet_sync_queue
        set status = 'FAILED', attempts = attempts + 1, last_error = sqlerrm
      where id = v_id;
+    return jsonb_build_object('ok', false, 'error', sqlerrm);
   end;
 end;
 $$;
@@ -1561,6 +1563,7 @@ declare
   v_certs jsonb;
   v_ranking jsonb;
   v_url text;
+  v_status jsonb;
 begin
   if not public.is_admin() then raise exception 'Tiada kebenaran.'; end if;
 
@@ -1574,7 +1577,7 @@ begin
     raise exception 'URL webhook Google Sheets belum ditetapkan.';
   end if;
 
-  perform public.enqueue_sheet_sync('FULL_SYNC', jsonb_build_object(
+  v_status := public.enqueue_sheet_sync('FULL_SYNC', jsonb_build_object(
     'students', v_students,
     'module_attempts', v_attempts->'module_attempts',
     'final_attempts', v_attempts->'final_attempts',
@@ -1583,7 +1586,7 @@ begin
     'generated_at', now()
   ));
 
-  return jsonb_build_object('ok', true, 'message', 'Sync dihantar ke Google Sheets.');
+  return v_status;
 end;
 $$;
 

@@ -58,9 +58,17 @@ export default function AdminSettingsPage() {
     setSyncing(true);
     setMessage(null);
     try {
-      const { error } = await supabase.rpc("sync_all_sheets");
-      if (error) setMessage({ kind: "error", text: error.message });
-      else setMessage({ kind: "success", text: "Data dihantar ke Google Sheets. Semak Sheet anda." });
+      const { data, error } = await supabase.rpc("sync_all_sheets");
+      if (error) {
+        setMessage({ kind: "error", text: error.message });
+        return;
+      }
+      const result = data as { ok?: boolean; error?: string } | null;
+      if (result && result.ok === false) {
+        setMessage({ kind: "error", text: result.error ?? "Sync gagal. Semak URL/secret dan pg_net Supabase." });
+      } else {
+        setMessage({ kind: "success", text: "Data dihantar ke Google Sheets. Semak Sheet anda." });
+      }
     } catch (err) {
       setMessage({ kind: "error", text: err instanceof Error ? err.message : "Gagal sync." });
     } finally {
