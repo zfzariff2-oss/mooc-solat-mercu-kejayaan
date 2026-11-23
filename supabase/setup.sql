@@ -659,6 +659,8 @@ begin
 
   select jsonb_build_object(
            'certificate_number', c.certificate_number,
+           'student_name', c.student_name,
+           'class_name', c.class_name,
            'issued_at', c.issued_at,
            'score', c.score,
            'total', c.total,
@@ -720,6 +722,7 @@ begin
 
   select * into v_profile from public.profiles where id = auth.uid();
   if not found then raise exception 'Profil tidak dijumpai.'; end if;
+  if not v_profile.profile_completed then raise exception 'Lengkapkan profil terlebih dahulu.'; end if;
 
   select * into v_quiz from public.course_quizzes where id = p_quiz_id;
   if not found or v_quiz.kind <> 'MODULE' then
@@ -805,11 +808,18 @@ security definer
 set search_path = public
 as $$
 declare
+  v_profile public.profiles;
   v_quiz public.course_quizzes;
   v_attempt public.final_assessment_attempts;
   v_rank int;
 begin
   if auth.uid() is null then raise exception 'Sesi tamat.'; end if;
+
+  select * into v_profile from public.profiles where id = auth.uid();
+  if not found then raise exception 'Profil tidak dijumpai.'; end if;
+  if not v_profile.profile_completed or v_profile.full_name is null or v_profile.class_name is null then
+    raise exception 'Lengkapkan nama penuh dan kelas terlebih dahulu.';
+  end if;
 
   if not public.has_completed_all_modules(auth.uid()) then
     raise exception 'Selesaikan semua modul dahulu sebelum pentaksiran akhir.';
@@ -890,6 +900,9 @@ begin
 
   select * into v_profile from public.profiles where id = auth.uid();
   if not found then raise exception 'Profil tidak dijumpai.'; end if;
+  if not v_profile.profile_completed or v_profile.full_name is null or v_profile.class_name is null then
+    raise exception 'Lengkapkan nama penuh dan kelas terlebih dahulu.';
+  end if;
 
   select * into v_attempt
   from public.final_assessment_attempts
@@ -1300,6 +1313,8 @@ begin
 
   select jsonb_build_object(
            'certificate_number', c.certificate_number,
+           'student_name', c.student_name,
+           'class_name', c.class_name,
            'issued_at', c.issued_at,
            'score', c.score,
            'total', c.total,
