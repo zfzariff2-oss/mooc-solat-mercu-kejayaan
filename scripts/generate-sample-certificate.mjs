@@ -36,10 +36,10 @@ async function build() {
   page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: gold, borderWidth: 3 });
   page.drawRectangle({ x: 34, y: 34, width: width - 68, height: height - 68, borderColor: gold, borderWidth: 1 });
 
-  const logoSize = 80;
+  const logoSize = 76;
   page.drawImage(logo, {
     x: (width - logoSize) / 2,
-    y: height - 120,
+    y: height - 112,
     width: logoSize,
     height: logoSize,
   });
@@ -49,14 +49,15 @@ async function build() {
     page.drawText(text, { x: (width - w) / 2, y, size, font, color });
   };
 
-  cx("SIJIL PENYERTAAN", serif, 38, height - 160);
-  cx("SOLAT MERCU KEJAYAAN", sans, 15, height - 195, gold);
-  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 245);
-  cx("AHMAD BIN ABDULLAH", serif, 32, height - 295);
-  cx("Kelas: 1 AMANAH", sansBold, 14, height - 328);
-  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(new Date().toISOString())}`, sans, 12, height - 355);
-  cx("No. Sijil: SMK-2026-99999", sans, 12, height - 379);
-  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 407);
+  cx("SEKOLAH MENENGAH KEBANGSAAN JALAN TIGA", sansBold, 11, height - 132, gold);
+  cx("SIJIL PENYERTAAN", serif, 38, height - 170);
+  cx("SOLAT MERCU KEJAYAAN", sans, 15, height - 205, gold);
+  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 253);
+  cx("AHMAD BIN ABDULLAH", serif, 32, height - 303);
+  cx("Kelas: 1 AMANAH", sansBold, 14, height - 336);
+  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(new Date().toISOString())}`, sans, 12, height - 363);
+  cx("No. Sijil: SMK-2026-99999", sans, 12, height - 387);
+  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 415);
   cx("Sahkan di /sijil/[nombor-sijil]", sans, 9, 60, gold);
   cx("CONTOH PAPARAN — BUKAN SIJIL RASMI", sans, 9, 44, rgb(0.55, 0.55, 0.55));
 

@@ -29,10 +29,10 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
   page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: gold, borderWidth: 3 });
   page.drawRectangle({ x: 34, y: 34, width: width - 68, height: height - 68, borderColor: gold, borderWidth: 1 });
 
-  const logoSize = 80;
+  const logoSize = 76;
   page.drawImage(logo, {
     x: (width - logoSize) / 2,
-    y: height - 120,
+    y: height - 112,
     width: logoSize,
     height: logoSize,
   });
@@ -42,19 +42,20 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
     page.drawText(text, { x: (width - w) / 2, y, size, font, color });
   };
 
-  cx("SIJIL PENYERTAAN", serif, 38, height - 160);
-  cx(input.courseTitle.toUpperCase(), sans, 15, height - 195, gold);
-  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 245);
+  cx("SEKOLAH MENENGAH KEBANGSAAN JALAN TIGA", sansBold, 11, height - 132, gold);
+  cx("SIJIL PENYERTAAN", serif, 38, height - 170);
+  cx(input.courseTitle.toUpperCase(), sans, 15, height - 205, gold);
+  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 253);
   const displayName = upperName(input.studentName);
   let nameSize = 32;
   while (nameSize > 16 && serif.widthOfTextAtSize(displayName, nameSize) > width - 160) {
     nameSize -= 2;
   }
-  cx(displayName, serif, nameSize, height - 295);
-  if (input.className) cx(`Kelas: ${input.className}`, sansBold, 14, height - 328);
-  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(input.issuedAt)}`, sans, 12, height - 355);
-  cx(`No. Sijil: ${input.certificateNumber}`, sans, 12, height - 379);
-  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 407);
+  cx(displayName, serif, nameSize, height - 303);
+  if (input.className) cx(`Kelas: ${input.className}`, sansBold, 14, height - 336);
+  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(input.issuedAt)}`, sans, 12, height - 363);
+  cx(`No. Sijil: ${input.certificateNumber}`, sans, 12, height - 387);
+  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 415);
   cx("Sahkan di /sijil/[nombor-sijil]", sans, 9, 60, gold);
 
   return doc.save();
