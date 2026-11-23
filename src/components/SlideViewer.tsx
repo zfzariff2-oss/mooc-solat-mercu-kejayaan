@@ -34,7 +34,10 @@ function cardTitle(text: string, index: number): string {
   if (num) return `Perkara ${num[1]}`;
   if (/^maksud/i.test(text)) return "Maksud";
   if (/^dari segi/i.test(text)) return "Pengertian";
+  if (/^syarat wajib/i.test(text)) return "Syarat wajib";
+  if (/^syarat sah/i.test(text)) return "Syarat sah";
   if (/^syarat/i.test(text)) return "Syarat";
+  if (/^antara akibat/i.test(text)) return "Akibat";
   if (/^antara/i.test(text)) return "Antara";
   if (/^islam/i.test(text)) return "Islam";
   if (/^baligh/i.test(text)) return "Baligh";
@@ -57,8 +60,10 @@ function stripTitlePrefix(text: string, title: string): string {
   if (/^(Huraian|Perkara|Antara)\b/i.test(title)) return text;
   const lower = text.toLowerCase();
   const t = title.toLowerCase();
-  if (lower.startsWith(t) && text.length > title.length) {
-    return text.slice(title.length).replace(/^[\s:：.-]+/, "");
+  const next = text.charAt(title.length);
+  if (lower.startsWith(t) && text.length > title.length && /[\s:：.-]/.test(next)) {
+    const remainder = text.slice(title.length).replace(/^[\s:：.-]+/, "");
+    return remainder.charAt(0).toUpperCase() + remainder.slice(1);
   }
   return text;
 }
@@ -150,8 +155,6 @@ function CardContent({
   const title = cardTitle(text, index);
   const displayText = text.replace(/^\d+\.\s+/, "");
   const bodyText = stripTitlePrefix(displayText, title);
-  const { lead, rest } = splitLead(displayText);
-  const showLabel = !lead || lead.toLowerCase() !== title.toLowerCase();
   const locked = state === "locked";
   const featured = state === "ready" || state === "playing";
   const bodyClass = cn(
@@ -170,6 +173,11 @@ function CardContent({
   );
 
   if (variant === "checklist") {
+    const { lead, rest } = splitLead(displayText);
+    const prefixLead = !lead && displayText.toLowerCase().startsWith(`${title.toLowerCase()} `);
+    const itemLead = lead || (prefixLead ? title : "");
+    const itemRest = lead ? rest : prefixLead ? displayText.slice(title.length).trim() : bodyText;
+    const showLabel = !itemLead || itemLead.toLowerCase() !== title.toLowerCase();
     return (
       <div className="flex gap-3">
         <span
@@ -183,8 +191,8 @@ function CardContent({
         </span>
         <div className="min-w-0 flex-1">
           {showLabel && <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>}
-          {lead && <p className="font-display mt-1 text-base font-extrabold text-slate-900">{lead}</p>}
-          <p className={cn(bodyClass, lead && "mt-0.5")}>{lead ? rest : bodyText}</p>
+          {itemLead && <p className="font-display mt-1 text-base font-extrabold text-slate-900">{itemLead}</p>}
+          <p className={cn(bodyClass, itemLead && "mt-0.5")}>{itemLead ? itemRest : bodyText}</p>
           {controls}
         </div>
       </div>
@@ -257,10 +265,7 @@ function CardContent({
         <span className="mt-2 h-full w-px bg-gradient-to-b from-forest/25 to-transparent" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", theme.label)}>{title}</p>
-          <span aria-hidden className="text-lg">{state === "completed" ? "✅" : CARD_ICONS[index % CARD_ICONS.length]}</span>
-        </div>
+        <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", theme.label)}>{title}</p>
         <p className={cn(bodyClass, "mt-1")}>{bodyText}</p>
         {controls}
       </div>
@@ -669,7 +674,7 @@ function LessonSlide({
         ) : variant === "split" ? (
           <div className="grid gap-3">{slide.body.map((text, i) => renderCard(text, i))}</div>
         ) : variant === "benefit" ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             {slide.body.map((text, i) => renderCard(text, i))}
           </div>
         ) : (
