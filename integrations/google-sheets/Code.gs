@@ -233,10 +233,10 @@ function handleFullSync_(ss, p) {
     resultRows.push([
       a.id || "",
       "KUIZ MODUL",
-      "",
+      a.email || "",
       a.student_name || "",
       a.class_name || "",
-      a.quiz_id || "",
+      a.quiz_title || a.quiz_id || "",
       number_(a.score),
       number_(a.total),
       number_(a.percentage),
@@ -249,7 +249,7 @@ function handleFullSync_(ss, p) {
     resultRows.push([
       "final-" + (a.student_id || ""),
       "PENTAKSIRAN AKHIR",
-      "",
+      a.email || "",
       a.student_name || "",
       a.class_name || "",
       "Pentaksiran Akhir",

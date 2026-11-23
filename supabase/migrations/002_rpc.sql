@@ -1005,7 +1005,9 @@ begin
            'student_id', qa.student_id,
            'student_name', p.full_name,
            'class_name', p.class_name,
+           'email', p.email,
            'quiz_id', qa.quiz_id,
+           'quiz_title', coalesce(q.title, qa.quiz_id),
            'score', qa.score,
            'total', qa.total,
            'percentage', qa.percentage,
@@ -1014,13 +1016,15 @@ begin
          ) order by qa.completed_at desc), '[]'::jsonb)
     into v_modules
   from public.quiz_attempts qa
-  join public.profiles p on p.id = qa.student_id;
+  join public.profiles p on p.id = qa.student_id
+  left join public.course_quizzes q on q.id = qa.quiz_id;
 
   select coalesce(jsonb_agg(jsonb_build_object(
            'id', fa.id,
            'student_id', fa.student_id,
            'student_name', p.full_name,
            'class_name', p.class_name,
+           'email', p.email,
            'score', fa.score,
            'total', fa.total,
            'percentage', fa.percentage,

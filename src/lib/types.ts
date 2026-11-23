@@ -163,7 +163,9 @@ export interface AdminModuleAttempt {
   student_id: string;
   student_name: string | null;
   class_name: string | null;
+  email?: string;
   quiz_id: string;
+  quiz_title?: string;
   score: number;
   total: number;
   percentage: number;
@@ -176,6 +178,7 @@ export interface AdminFinalAttempt {
   student_id: string;
   student_name: string | null;
   class_name: string | null;
+  email?: string;
   score: number;
   total: number;
   percentage: number;

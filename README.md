@@ -37,11 +37,16 @@ npm run preview
 
 ## 2. Supabase (WAJIB)
 
-Buka **Supabase SQL Editor** dan jalankan fail mengikut urutan:
+Buka **Supabase SQL Editor**:
+`https://supabase.com/dashboard/project/ghrzskkcxkezczxlnugr/sql/new`
 
-1. `supabase/migrations/001_schema.sql`
-2. `supabase/migrations/002_rpc.sql`
-3. `supabase/migrations/003_seed.sql`
+Jalankan sama ada:
+
+- **`supabase/setup.sql`** (semua sekali gus), atau
+- fail mengikut urutan:
+  1. `supabase/migrations/001_schema.sql`
+  2. `supabase/migrations/002_rpc.sql`
+  3. `supabase/migrations/003_seed.sql`
 
 `003_seed.sql` dijana daripada kandungan frontend. Jika kandungan berubah:
 

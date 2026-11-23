@@ -147,3 +147,21 @@ body {
     }
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .certificate-print,
+  .certificate-print * {
+    visibility: visible;
+  }
+  .certificate-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

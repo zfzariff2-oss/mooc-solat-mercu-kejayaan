@@ -18,7 +18,7 @@ export default function CertificatePreview({
   downloadPending?: boolean;
 }) {
   return (
-    <div>
+    <div className="certificate-print">
       <div className="border-[3px] border-[#a68b4f] bg-[#fdfcf9] p-2">
         <div className="border border-[#d6c08a] px-6 py-10 text-center">
           <p className="font-display text-4xl md:text-5xl">SIJIL PENYELESAIAN</p>
