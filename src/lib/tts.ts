@@ -75,14 +75,16 @@ export function playAudioOrSpeak(url: string, fallbackText: string, onEnd?: () =
 
   audio.onended = finish;
   audio.onerror = () => {
-    if (currentAudio === audio) currentAudio = null;
+    if (currentAudio !== audio) return;
+    currentAudio = null;
     speak(fallbackText, onEnd);
   };
 
   const promise = audio.play();
   if (promise) {
     promise.catch(() => {
-      if (currentAudio === audio) currentAudio = null;
+      if (currentAudio !== audio) return;
+      currentAudio = null;
       speak(fallbackText, onEnd);
     });
   }
@@ -114,6 +116,7 @@ export function playCardSequence(items: SequenceItem[], callbacks: SequenceCallb
     const item = items[current];
     callbacks.onStart?.(current);
     let settled = false;
+    let fallbackStarted = false;
 
     const finish = (ok: boolean, error?: unknown) => {
       if (settled) return;
@@ -131,11 +134,15 @@ export function playCardSequence(items: SequenceItem[], callbacks: SequenceCallb
       playNext();
     };
 
-    audio.onended = () => finish(true);
-    audio.onerror = () => {
+    const fallbackToSpeech = (error?: unknown) => {
+      if (settled || fallbackStarted || token !== sequenceToken) return;
+      fallbackStarted = true;
       audio.onerror = null;
-      speak(item.text, () => finish(true));
+      speak(item.text, () => finish(true, error));
     };
+
+    audio.onended = () => finish(true);
+    audio.onerror = () => fallbackToSpeech();
     audio.onpause = () => {
       if (token !== sequenceToken) finish(false);
     };
@@ -144,10 +151,7 @@ export function playCardSequence(items: SequenceItem[], callbacks: SequenceCallb
     audio.load();
     const promise = audio.play();
     if (promise) {
-      promise.catch((error) => {
-        audio.onerror = null;
-        speak(item.text, () => finish(true, error));
-      });
+      promise.catch((error) => fallbackToSpeech(error));
     }
   };
 
