@@ -12,7 +12,7 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 - **Sijil** diberikan selepas pentaksiran dihantar, tanpa mengira markah
 - **Google Sheets sync** setiap kali hantar + butang sync semua
 - **Kesan bunyi** klik / betul / berjaya / salah / ralat
-- **TTS Bahasa Melayu** pada slaid dan soalan (Web Speech API)
+- **TTS Bahasa Melayu** pada setiap kad & soalan (audio Google Cloud TTS; fallback Web Speech API)
 - Admin: pelajar, keputusan, ranking, sijil, tetapan Sheet
 
 ## URL
@@ -57,6 +57,15 @@ npm run generate:keys
 ```
 
 Kemudian jalankan semula `003_seed.sql`.
+
+Audio TTS Bahasa Melayu dijana sebagai fail MP3 statik:
+
+```bash
+GOOGLE_TTS_API_KEY="..." npm run generate:tts
+```
+
+Guna `-- --force` untuk jana semula semua fail. Key hanya digunakan semasa
+penjanaan dan **tidak** disimpan dalam repo/frontend.
 
 ### Auth Google (GIS)
 
@@ -160,8 +169,9 @@ integrations/google-sheets/  # Apps Script webhook
   `src/content/course.ts` + `npm run generate:keys`.
 - Jika mahu tambah/edit soalan, ubah fail kandungan, jana semula seed, dan jalankan
   `003_seed.sql` semula.
-- **TTS** menggunakan Web Speech API (suara terbina dalam pelayar). API key
-  Google Cloud TTS **tidak** dimasukkan ke frontend kerana fail statik GitHub Pages
-  boleh didedahkan. Jika mahu suara Google Cloud TTS, ia perlu melalui server proxy /
-  Supabase Edge Function dengan key disimpan sebagai secret.
-- Kesan bunyi menggunakan Web Audio API; tiada fail audio luaran diperlukan.
+- **TTS** menggunakan audio MP3 Google Cloud TTS yang dijana melalui
+  `scripts/generate-google-tts.mjs` dan disimpan di `public/audio/tts/`. Key
+  hanya digunakan semasa penjanaan; ia tidak dimasukkan ke frontend. Jika fail
+  audio tiada, frontend fallback ke Web Speech API.
+- Kesan bunyi (klik/betul/salah/ralat) menggunakan Web Audio API; tiada fail
+  audio luaran diperlukan untuk kesan bunyi.

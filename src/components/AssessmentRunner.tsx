@@ -4,7 +4,8 @@ import type { Question } from "@/content/publicCourse";
 import type { FinalSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn, formatClock } from "@/lib/utils";
-import { playClick, playError, playSuccess, speak, stopSpeaking } from "@/lib/sfx";
+import { playClick, playError, playSuccess } from "@/lib/sfx";
+import { playAudioOrSpeak, questionAudioUrl, stopAllAudio } from "@/lib/tts";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -53,15 +54,15 @@ export default function AssessmentRunner({
   const progressPct = questions.length === 0 ? 0 : Math.round((answered / questions.length) * 100);
 
   useEffect(() => {
-    stopSpeaking();
+    stopAllAudio();
   }, [idx]);
 
   useEffect(() => {
-    if (result) stopSpeaking();
+    if (result) stopAllAudio();
   }, [result]);
 
   useEffect(() => {
-    return () => stopSpeaking();
+    return () => stopAllAudio();
   }, []);
 
   const questionById = useMemo(() => new Map(questions.map((qq) => [qq.id, qq])), [questions]);
@@ -108,7 +109,7 @@ export default function AssessmentRunner({
     const opts = visibleOptions(q)
       .map((o) => `${o}. ${optionText(q, o)}`)
       .join(". ");
-    speak(`${q.question}. ${opts}`);
+    playAudioOrSpeak(questionAudioUrl(q.id), `${q.question}. ${opts}`);
   }
 
   if (result) {

@@ -4,7 +4,8 @@ import type { Question } from "@/content/publicCourse";
 import type { QuizSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { playClick, playError, playSuccess, playWrong, speak, stopSpeaking } from "@/lib/sfx";
+import { playClick, playError, playSuccess, playWrong } from "@/lib/sfx";
+import { playAudioOrSpeak, questionAudioUrl, stopAllAudio } from "@/lib/tts";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -48,15 +49,15 @@ export default function QuizRunner({
   const allAnswered = answered === questions.length;
 
   useEffect(() => {
-    stopSpeaking();
+    stopAllAudio();
   }, [idx]);
 
   useEffect(() => {
-    if (result) stopSpeaking();
+    if (result) stopAllAudio();
   }, [result]);
 
   useEffect(() => {
-    return () => stopSpeaking();
+    return () => stopAllAudio();
   }, []);
 
   function pick(questionId: string, a: Answer) {
@@ -112,7 +113,7 @@ export default function QuizRunner({
     const opts = visibleOptions(q)
       .map((o) => `${o}. ${optionText(q, o)}`)
       .join(". ");
-    speak(`${q.question}. ${opts}`);
+    playAudioOrSpeak(questionAudioUrl(q.id), `${q.question}. ${opts}`);
   }
 
   if (result) {

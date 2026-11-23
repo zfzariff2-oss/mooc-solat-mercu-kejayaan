@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
 import { ProgressBar } from "./ui";
-import { playClick, speak, stopSpeaking } from "@/lib/sfx";
+import { playClick } from "@/lib/sfx";
+import { cardAudioUrl, playAudioOrSpeak, stopAllAudio } from "@/lib/tts";
 
 const TYPE_META: Record<string, { label: string; icon: string; header: string; chip: string }> = {
   TEXT: { label: "Bacaan", icon: "📖", header: "from-sky to-sky-dark", chip: "bg-sky/10 text-sky-dark" },
@@ -11,6 +12,18 @@ const TYPE_META: Record<string, { label: string; icon: string; header: string; c
   SUMMARY: { label: "Rumusan", icon: "🌟", header: "from-sun to-coral", chip: "bg-sun/15 text-sun-dark" },
   ACTIVITY: { label: "Aktiviti", icon: "🎯", header: "from-grape to-grape-dark", chip: "bg-grape/10 text-grape" },
 };
+
+const CARD_ICONS = ["📖", "💡", "✨", "🧩", "🎯", "🌿"];
+
+const CARD_THEMES = [
+  { card: "from-forest/10 via-white to-mint/10", border: "border-forest/20", badge: "bg-gradient-to-br from-forest to-mint", label: "text-forest", ring: "hover:border-forest/40" },
+  { card: "from-sky/10 via-white to-forest/10", border: "border-sky/25", badge: "bg-gradient-to-br from-sky to-forest", label: "text-sky-dark", ring: "hover:border-sky/40" },
+  { card: "from-grape/10 via-white to-sky/10", border: "border-grape/25", badge: "bg-gradient-to-br from-grape to-sky", label: "text-grape", ring: "hover:border-grape/40" },
+  { card: "from-sun/20 via-white to-coral/10", border: "border-sun/40", badge: "bg-gradient-to-br from-sun to-coral", label: "text-sun-dark", ring: "hover:border-sun/50" },
+  { card: "from-coral/10 via-white to-grape/10", border: "border-coral/25", badge: "bg-gradient-to-br from-coral to-grape", label: "text-coral-dark", ring: "hover:border-coral/40" },
+  { card: "from-mint/10 via-white to-sky/10", border: "border-mint/40", badge: "bg-gradient-to-br from-mint to-sky", label: "text-mint-dark", ring: "hover:border-mint/50" },
+  { card: "from-forest-dark/10 via-white to-sun/10", border: "border-forest/25", badge: "bg-gradient-to-br from-forest-dark to-sun", label: "text-forest-dark", ring: "hover:border-forest/40" },
+] as const;
 
 function cardTitle(text: string, index: number): string {
   const num = text.match(/^(\d+)\.\s+/);
@@ -34,6 +47,8 @@ function LessonSlide({
 }) {
   const meta = TYPE_META[slide.type] ?? TYPE_META.TEXT;
   const [open, setOpen] = useState<Record<number, boolean>>({});
+  const moduleNo = Number(slide.id.match(/^m(\d+)/)?.[1] ?? 1);
+  const theme = CARD_THEMES[(moduleNo - 1) % CARD_THEMES.length];
 
   return (
     <div className="card-pop animate-fade-up overflow-hidden">
@@ -73,40 +88,72 @@ function LessonSlide({
           {slide.body.map((text, i) => {
             const completed = completedIndices.includes(i) || revision;
             const isOpen = open[i] || completed;
+            const icon = CARD_ICONS[i % CARD_ICONS.length];
             return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setOpen((m) => ({ ...m, [i]: true }));
-                  if (!completed) onCardCompleted(i);
-                }}
-                className={cn(
-                  "transition-soft w-full rounded-2xl border-2 p-4 text-left",
-                  completed
-                    ? "border-mint/40 bg-mint-light/40"
-                    : "border-slate-200 bg-white hover:border-forest/30 hover:bg-forest/5",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold",
-                      completed ? "bg-mint text-white" : "bg-forest/10 text-forest",
-                    )}
-                  >
-                    {completed ? "✓" : i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold tracking-wide text-slate-400">{cardTitle(text, i)}</p>
-                    <p className={cn("mt-1 text-sm leading-6 text-slate-700", !isOpen && "line-clamp-2")}>{text}</p>
-                    {!completed && !isOpen && (
-                      <p className="mt-2 text-[11px] font-semibold text-forest">Klik untuk baca & tandakan selesai →</p>
-                    )}
+              <div key={i} className="flex items-stretch gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen((m) => ({ ...m, [i]: true }));
+                    if (!completed) onCardCompleted(i);
+                  }}
+                  className={cn(
+                    "transition-soft flex-1 rounded-2xl border-2 bg-gradient-to-br p-4 text-left shadow-sm hover:-translate-y-0.5",
+                    completed
+                      ? "border-mint/50 bg-mint-light/40"
+                      : `${theme.border} ${theme.card} ${theme.ring}`,
+                    i === 0 && "md:p-5",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white shadow-sm",
+                        completed ? "bg-mint" : theme.badge,
+                      )}
+                    >
+                      {completed ? "✓" : i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={cn("text-[10px] font-bold uppercase tracking-widest", theme.label)}>
+                          {cardTitle(text, i)}
+                        </p>
+                        <span aria-hidden className="text-base opacity-70">
+                          {completed ? "✅" : icon}
+                        </span>
+                      </div>
+                      <p className={cn("mt-1 leading-6 text-slate-700", i === 0 ? "text-[15px]" : "text-sm", !isOpen && "line-clamp-2")}>
+                        {text}
+                      </p>
+                      {!completed && !isOpen && (
+                        <p className={cn("mt-2 text-[11px] font-semibold", theme.label)}>
+                          Klik untuk baca & tandakan selesai →
+                        </p>
+                      )}
+                      {completed && <p className="mt-2 text-[11px] font-semibold text-mint-dark">✓ Kad selesai</p>}
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    playAudioOrSpeak(cardAudioUrl(slide.id, i), text);
+                  }}
+                  className={cn(
+                    "transition-soft flex w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border-2 bg-gradient-to-br text-center hover:-translate-y-0.5",
+                    theme.border,
+                    theme.card,
+                  )}
+                  aria-label={`Dengar penerangan kad ${i + 1}`}
+                  title="Dengar penerangan"
+                >
+                  <span aria-hidden className="text-lg">🔊</span>
+                  <span className={cn("text-[9px] font-bold", theme.label)}>Dengar</span>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -128,7 +175,6 @@ export default function SlideViewer({
   const [idx, setIdx] = useState(0);
   const [sessionPassed, setSessionPassed] = useState<Set<string>>(() => new Set());
   const [completedCards, setCompletedCards] = useState<Record<string, number[]>>({});
-  const [speaking, setSpeaking] = useState(false);
 
   const initialSet = useMemo(() => new Set(initiallyViewed), [initiallyViewed]);
   const slide = module.slides[idx];
@@ -141,25 +187,12 @@ export default function SlideViewer({
   const pct = total === 0 ? 0 : Math.round(((idx + 1) / total) * 100);
 
   useEffect(() => {
-    stopSpeaking();
-    setSpeaking(false);
+    stopAllAudio();
   }, [idx]);
 
   useEffect(() => {
-    return () => stopSpeaking();
+    return () => stopAllAudio();
   }, []);
-
-  function toggleSpeak() {
-    playClick();
-    if (speaking) {
-      stopSpeaking();
-      setSpeaking(false);
-      return;
-    }
-    const text = `${slide.title}. ${slide.body.join(" ")}`;
-    setSpeaking(true);
-    speak(text, () => setSpeaking(false));
-  }
 
   function completeSlide(slideId: string) {
     playClick();
@@ -221,17 +254,9 @@ export default function SlideViewer({
             );
           })}
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-medium text-slate-400">
-            {module.num}: {module.title}
-          </p>
-          <button
-            onClick={toggleSpeak}
-            className="transition-soft inline-flex items-center gap-1.5 rounded-full bg-forest/10 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest hover:text-white"
-          >
-            {speaking ? "⏹ Hentikan" : "🔊 Dengar Slaid"}
-          </button>
-        </div>
+        <p className="mt-3 text-[11px] font-medium text-slate-400">
+          {module.num}: {module.title}
+        </p>
       </div>
 
       <LessonSlide

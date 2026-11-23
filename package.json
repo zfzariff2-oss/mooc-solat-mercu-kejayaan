@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "generate:keys": "node scripts/generate-answer-keys.mjs"
+    "generate:keys": "node scripts/generate-answer-keys.mjs",
+    "generate:tts": "node scripts/generate-google-tts.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
