@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Question } from "@/content/publicCourse";
 import type { QuizSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { playClick, playError, playSuccess, playWrong, speak } from "@/lib/sfx";
+import { playClick, playError, playSuccess, playWrong, speak, stopSpeaking } from "@/lib/sfx";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -46,6 +46,18 @@ export default function QuizRunner({
   const q = questions[idx];
   const answered = Object.keys(answers).length;
   const allAnswered = answered === questions.length;
+
+  useEffect(() => {
+    stopSpeaking();
+  }, [idx]);
+
+  useEffect(() => {
+    if (result) stopSpeaking();
+  }, [result]);
+
+  useEffect(() => {
+    return () => stopSpeaking();
+  }, []);
 
   function pick(questionId: string, a: Answer) {
     if (result) return;

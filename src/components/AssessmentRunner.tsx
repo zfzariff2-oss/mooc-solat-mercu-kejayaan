@@ -4,7 +4,7 @@ import type { Question } from "@/content/publicCourse";
 import type { FinalSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn, formatClock } from "@/lib/utils";
-import { playClick, playError, playSuccess, speak } from "@/lib/sfx";
+import { playClick, playError, playSuccess, speak, stopSpeaking } from "@/lib/sfx";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -51,6 +51,18 @@ export default function AssessmentRunner({
   const answered = Object.keys(answers).length;
   const allAnswered = answered === questions.length;
   const progressPct = questions.length === 0 ? 0 : Math.round((answered / questions.length) * 100);
+
+  useEffect(() => {
+    stopSpeaking();
+  }, [idx]);
+
+  useEffect(() => {
+    if (result) stopSpeaking();
+  }, [result]);
+
+  useEffect(() => {
+    return () => stopSpeaking();
+  }, []);
 
   const questionById = useMemo(() => new Map(questions.map((qq) => [qq.id, qq])), [questions]);
 
