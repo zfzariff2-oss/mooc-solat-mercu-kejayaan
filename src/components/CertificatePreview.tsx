@@ -1,6 +1,25 @@
-import { formatDateMY, upperName } from "@/lib/utils";
-import { playClick } from "@/lib/sfx";
 import { assetUrl } from "@/lib/asset";
+import {
+  CERT_COLORS,
+  CERT_HEIGHT,
+  CERT_LAYOUT,
+  CERT_WIDTH,
+  certificateClassText,
+  certificateNumberText,
+  certificateSentence,
+  fitPreviewTextSize,
+} from "@/lib/certificateLayout";
+import { playClick } from "@/lib/sfx";
+import { upperName } from "@/lib/utils";
+
+/** Nisbah halaman PDF A4 landskap. */
+const PAGE_WIDTH = 842;
+const PAGE_HEIGHT = 595;
+const X_SCALE = PAGE_WIDTH / CERT_WIDTH;
+const Y_SCALE = PAGE_HEIGHT / CERT_HEIGHT;
+
+const sx = (value: number) => value * X_SCALE;
+const sy = (value: number) => value * Y_SCALE;
 
 export default function CertificatePreview({
   studentName,
@@ -19,28 +38,169 @@ export default function CertificatePreview({
   onDownload?: () => void;
   downloadPending?: boolean;
 }) {
+  const nameText = upperName(studentName) || "PELAJAR";
+  const classText = certificateClassText(className);
+  const numberText = certificateNumberText(certificateNumber);
+  const sentence = certificateSentence(courseTitle, issuedAt);
+
+  const nameSize = fitPreviewTextSize(nameText, CERT_LAYOUT.name.size, CERT_LAYOUT.name.maxWidth, 0.62);
+  const classSize = fitPreviewTextSize(
+    classText,
+    CERT_LAYOUT.className.size,
+    CERT_LAYOUT.className.maxWidth,
+    0.55,
+  );
+  const sentenceSize = Math.min(
+    fitPreviewTextSize(
+      sentence.line1,
+      CERT_LAYOUT.sentenceLine1.size,
+      CERT_LAYOUT.sentenceLine1.maxWidth,
+      0.472,
+    ),
+    fitPreviewTextSize(
+      sentence.line2,
+      CERT_LAYOUT.sentenceLine2.size,
+      CERT_LAYOUT.sentenceLine2.maxWidth,
+      0.48,
+    ),
+  );
+  const numberSize = fitPreviewTextSize(
+    numberText,
+    CERT_LAYOUT.certificateNumber.size,
+    CERT_LAYOUT.certificateNumber.maxWidth,
+    0.484,
+  );
+
+  const serif = "'Times New Roman', Times, Georgia, serif";
+  const sans = "Arial, Helvetica, sans-serif";
+
   return (
     <div className="certificate-print">
-      <div className="border-[3px] border-[#a68b4f] bg-[#fdfcf9] p-2">
-        <div className="border border-[#d6c08a] px-6 py-10 text-center">
-          <img src={assetUrl("logo-sekolah.png")} alt="Logo SMKJT" className="mx-auto mb-2 h-20 w-20 object-contain" />
-          <p className="text-[10px] font-bold tracking-[0.18em] text-[#a68b4f] md:text-xs">
-            SEKOLAH MENENGAH KEBANGSAAN JALAN TIGA
-          </p>
-          <p className="font-display mt-2 text-4xl md:text-5xl">SIJIL PENYERTAAN</p>
-          <p className="mt-2 text-sm tracking-[0.2em] text-[#a68b4f]">{courseTitle.toUpperCase()}</p>
-          <p className="mt-6 text-sm text-stone-500">Dengan ini disahkan bahawa</p>
-          <p className="font-display mt-2 break-words text-3xl md:text-4xl">{upperName(studentName)}</p>
-          {className && <p className="mt-2 font-mono text-sm text-stone-500">Kelas: {className}</p>}
-          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-stone-600">
-            telah berjaya menamatkan kursus pada {formatDateMY(issuedAt)}.
-          </p>
-          <p className="mt-4 text-sm text-stone-600">
-            No. Sijil: <span className="font-mono font-bold">{certificateNumber}</span>
-          </p>
-          <p className="mt-2 text-sm italic text-stone-500">Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.</p>
-        </div>
+      <div
+        className="certificate-sheet relative mx-auto w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_60px_-32px_rgba(2,32,71,0.55)]"
+        style={{ aspectRatio: `${PAGE_WIDTH} / ${PAGE_HEIGHT}` }}
+        role="img"
+        aria-label={`Sijil penyertaan ${studentName}${className ? `, kelas ${className}` : ""}, nombor ${certificateNumber}.`}
+      >
+        <img
+          src={assetUrl("sijil-template.png")}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="absolute inset-0 h-full w-full select-none object-fill"
+        />
+        <svg
+          viewBox={`0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        >
+          <g textAnchor="middle">
+            {/* Nama pelajar: bayang halus + teks navy. */}
+            <text
+              x={sx(CERT_LAYOUT.name.x + 2)}
+              y={sy(CERT_LAYOUT.name.baseline + 3)}
+              fontFamily={serif}
+              fontWeight="700"
+              fontSize={sx(nameSize)}
+              fill={CERT_COLORS.nameShadow}
+            >
+              {nameText}
+            </text>
+            <text
+              x={sx(CERT_LAYOUT.name.x)}
+              y={sy(CERT_LAYOUT.name.baseline)}
+              fontFamily={serif}
+              fontWeight="700"
+              fontSize={sx(nameSize)}
+              fill={CERT_COLORS.navy}
+            >
+              {nameText}
+            </text>
+
+            {/* Plak kelas. */}
+            <text
+              x={sx(CERT_LAYOUT.className.x + 1.5)}
+              y={sy(CERT_LAYOUT.className.baseline + 2)}
+              fontFamily={serif}
+              fontWeight="700"
+              fontSize={sx(classSize)}
+              fill={CERT_COLORS.classShadow}
+            >
+              {classText}
+            </text>
+            <text
+              x={sx(CERT_LAYOUT.className.x)}
+              y={sy(CERT_LAYOUT.className.baseline)}
+              fontFamily={serif}
+              fontWeight="700"
+              fontSize={sx(classSize)}
+              fill={CERT_COLORS.navy}
+            >
+              {classText}
+            </text>
+
+            {/* Ayat kursus dan tarikh. */}
+            <g
+              fontFamily={serif}
+              fontStyle="italic"
+              fontSize={sx(sentenceSize)}
+              fill={CERT_COLORS.sentence}
+            >
+              <text
+                x={sx(CERT_LAYOUT.sentenceLine1.x + 1.5)}
+                y={sy(CERT_LAYOUT.sentenceLine1.baseline + 2)}
+                fill={CERT_COLORS.sentenceShadow}
+              >
+                {sentence.line1}
+              </text>
+              <text x={sx(CERT_LAYOUT.sentenceLine1.x)} y={sy(CERT_LAYOUT.sentenceLine1.baseline)}>
+                {sentence.line1}
+              </text>
+              <text
+                x={sx(CERT_LAYOUT.sentenceLine2.x + 1.5)}
+                y={sy(CERT_LAYOUT.sentenceLine2.baseline + 2)}
+                fill={CERT_COLORS.sentenceShadow}
+              >
+                {sentence.line2Before}
+                <tspan fontWeight="700">{sentence.line2Course}</tspan>
+                {sentence.line2After}
+              </text>
+              <text
+                x={sx(CERT_LAYOUT.sentenceLine2.x)}
+                y={sy(CERT_LAYOUT.sentenceLine2.baseline)}
+              >
+                {sentence.line2Before}
+                <tspan fontWeight="700">{sentence.line2Course}</tspan>
+                {sentence.line2After}
+              </text>
+            </g>
+
+            {/* Nombor sijil pada reben biru. */}
+            <text
+              x={sx(CERT_LAYOUT.certificateNumber.x)}
+              y={sy(CERT_LAYOUT.certificateNumber.baseline + 2)}
+              fontFamily={sans}
+              fontWeight="700"
+              fontSize={sx(numberSize)}
+              fill={CERT_COLORS.numberShadow}
+            >
+              {numberText}
+            </text>
+            <text
+              x={sx(CERT_LAYOUT.certificateNumber.x)}
+              y={sy(CERT_LAYOUT.certificateNumber.baseline)}
+              fontFamily={sans}
+              fontWeight="700"
+              fontSize={sx(numberSize)}
+              fill={CERT_COLORS.white}
+            >
+              {numberText}
+            </text>
+          </g>
+        </svg>
       </div>
+
       <div className="mt-4 flex flex-wrap gap-3 print:hidden">
         <button
           onClick={() => {

@@ -7,3 +7,8 @@ dist/
 .DS_Store
 Thumbs.db
 tsconfig.tsbuildinfo
+
+# Fail rujukan dan sampel sijil setempat
+Sijil Baru.png
+contoh-sijil.pdf
+contoh-sijil.png

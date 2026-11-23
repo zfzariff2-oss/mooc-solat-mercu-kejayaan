@@ -148,7 +148,20 @@ body {
   }
 }
 
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
 @media print {
+  html,
+  body {
+    width: 297mm;
+    height: 210mm;
+    overflow: hidden;
+    background: #fff;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -158,10 +171,30 @@ body {
   }
   .certificate-print {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    inset: 0;
+    width: 297mm;
+    height: 210mm;
+    margin: 0;
+    padding: 0;
     border: none !important;
     box-shadow: none !important;
+    page-break-after: avoid;
+  }
+  .certificate-sheet {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .certificate-sheet * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
