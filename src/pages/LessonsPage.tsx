@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/hooks/useDashboard";
+import { getModule } from "@/content/publicCourse";
+import { isLessonUnlocked } from "@/lib/courseProgress";
 import SiteShell, { STUDENT_NAV } from "@/components/SiteShell";
 import LessonCard from "@/components/LessonCard";
 import { Alert, EmptyState, Loading, PageHeader } from "@/components/ui";
@@ -19,7 +21,7 @@ export default function LessonsPage() {
       <PageHeader
         kicker="SENARAI MODUL"
         title="Pelajaran"
-        desc="Setiap modul lengkap apabila semua slaid dibaca DAN kuiz modul diluluskan (80%)."
+        desc="Selesaikan nota dan lulus kuiz satu modul dahulu. Modul seterusnya hanya terbuka selepas itu."
       />
       {loading ? (
         <Loading text="Memuatkan modul…" />
@@ -33,9 +35,19 @@ export default function LessonsPage() {
         </div>
       ) : (
         <section className="mt-6 grid gap-5 md:grid-cols-2" aria-label="Senarai modul">
-          {data.lessons.map((l) => (
-            <LessonCard key={l.lesson_id} lesson={l} href={`/pelajaran/${l.lesson_id}`} />
-          ))}
+          {data.lessons.map((l, index) => {
+            const contentModule = getModule(l.lesson_id);
+            return (
+              <LessonCard
+                key={l.lesson_id}
+                lesson={l}
+                href={`/pelajaran/${l.lesson_id}`}
+                quizHref={contentModule ? `/kuiz/${contentModule.quiz.id}` : undefined}
+                unlocked={isLessonUnlocked(data.lessons, index)}
+                lockedBy={index > 0 ? data.lessons[index - 1].title : undefined}
+              />
+            );
+          })}
         </section>
       )}
 

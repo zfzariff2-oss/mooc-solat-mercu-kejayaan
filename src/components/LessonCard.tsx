@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { LessonProgress } from "@/lib/types";
+import { areSlidesCompleted } from "@/lib/courseProgress";
 import { Card, ProgressBar } from "./ui";
 import { cn } from "@/lib/utils";
 import { playClick } from "@/lib/sfx";
@@ -13,9 +14,53 @@ const TONES = [
   { chip: "bg-mint/10 text-mint-dark", btn: "bg-gradient-to-r from-mint to-mint-dark shadow-mint/25", emoji: "📔", ring: "group-hover:ring-mint/20" },
 ];
 
-export default function LessonCard({ lesson, href }: { lesson: LessonProgress; href: string }) {
+export default function LessonCard({
+  lesson,
+  href,
+  quizHref,
+  unlocked = true,
+  lockedBy,
+}: {
+  lesson: LessonProgress;
+  href: string;
+  quizHref?: string;
+  unlocked?: boolean;
+  lockedBy?: string;
+}) {
   const done = lesson.completed;
+  const slidesDone = areSlidesCompleted(lesson);
   const tone = TONES[(lesson.order - 1) % TONES.length];
+
+  if (!unlocked) {
+    return (
+      <Card className="animate-fade-up overflow-hidden border-2 border-slate-200 bg-slate-50/90">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center rounded-full bg-slate-200/80 px-3 py-1 text-[11px] font-bold tracking-widest text-slate-500">
+            MODUL {lesson.order}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-[11px] font-bold text-slate-500">
+            🔒 TERKUNCI
+          </span>
+        </div>
+        <h2 className="font-display mt-3 max-w-[92%] text-2xl font-extrabold leading-snug text-slate-500">{lesson.title}</h2>
+        <p className="mt-3 text-sm font-medium leading-6 text-slate-400">
+          {lockedBy ? `Selesaikan ${lockedBy} dahulu untuk membuka modul ini.` : "Selesaikan modul sebelumnya dahulu untuk membuka modul ini."}
+        </p>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-400">{lesson.total_slides} slaid interaktif</span>
+          <span
+            aria-disabled="true"
+            className="cursor-not-allowed rounded-full bg-slate-200 px-5 py-2 text-xs font-bold tracking-wide text-slate-400"
+          >
+            🔒 TERKUNCI
+          </span>
+        </div>
+      </Card>
+    );
+  }
+
+  const cardHref = slidesDone && !lesson.quiz_passed && quizHref ? quizHref : href;
+
   return (
     <Card className={cn("card-hover group relative animate-fade-up overflow-hidden ring-2 ring-transparent", tone.ring)}>
       <span aria-hidden className="pointer-events-none absolute -right-2 -top-5 text-[5.5rem] leading-none opacity-10">
@@ -40,22 +85,27 @@ export default function LessonCard({ lesson, href }: { lesson: LessonProgress; h
           <span className="inline-flex items-center gap-1.5">
             📖 Slaid {lesson.slides_viewed}/{lesson.total_slides}
           </span>
-          <span className={cn("inline-flex items-center gap-1.5", lesson.quiz_passed ? "text-mint-dark" : "text-slate-400")}>
-            {lesson.quiz_passed ? "🧠 Kuiz lulus" : "🧠 Kuiz belum lulus"}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5",
+              lesson.quiz_passed ? "text-mint-dark" : slidesDone ? "text-grape" : "text-slate-400",
+            )}
+          >
+            {lesson.quiz_passed ? "🧠 Kuiz lulus" : slidesDone ? "🧠 Kuiz dibuka" : "🔒 Kuiz dikunci"}
           </span>
         </div>
         <ProgressBar value={lesson.percentage} className="mt-4" />
         <div className="mt-4 flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-400">{lesson.total_slides} slaid interaktif</span>
           <Link
-            to={href}
+            to={cardHref}
             onClick={playClick}
             className={cn(
               "transition-soft rounded-full px-5 py-2 text-xs font-bold tracking-wide text-white shadow-lg hover:-translate-y-0.5",
               tone.btn,
             )}
           >
-            {done ? "ULANGKAJI" : lesson.slides_viewed > 0 ? "SAMBUNG →" : "MULA →"}
+            {done ? "ULANGKAJI" : slidesDone ? "AMBIL KUIZ →" : lesson.slides_viewed > 0 ? "SAMBUNG →" : "MULA →"}
           </Link>
         </div>
       </div>

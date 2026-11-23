@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
 import { Alert, ProgressBar } from "./ui";
@@ -674,14 +674,18 @@ export default function SlideViewer({
   module,
   initiallyViewed,
   onMarkViewed,
+  quizPassed = false,
 }: {
   module: Module;
   initiallyViewed: string[];
-  onMarkViewed: (slideId: string) => void;
+  onMarkViewed: (slideId: string) => void | Promise<void>;
+  quizPassed?: boolean;
 }) {
+  const navigate = useNavigate();
   const [idx, setIdx] = useState(0);
   const [sessionPassed, setSessionPassed] = useState<Set<string>>(() => new Set());
   const [completedCards, setCompletedCards] = useState<Record<string, number[]>>({});
+  const [unlockingQuiz, setUnlockingQuiz] = useState(false);
   const previousSlideRef = useRef<string | null>(null);
 
   const initialSet = useMemo(() => new Set(initiallyViewed), [initiallyViewed]);
@@ -709,7 +713,7 @@ export default function SlideViewer({
     if (revision) return;
     if (slide.body.length > 0 && completedForSlide.length >= slide.body.length && !sessionPassed.has(slide.id)) {
       setSessionPassed((m) => (m.has(slide.id) ? m : new Set(m).add(slide.id)));
-      onMarkViewed(slide.id);
+      void onMarkViewed(slide.id);
     }
   }, [completedForSlide.length, slide.body.length, slide.id, revision, sessionPassed, onMarkViewed]);
 
@@ -730,10 +734,10 @@ export default function SlideViewer({
     previousSlideRef.current = slide.id;
   }, [slide.id, module.slides, completedCards, sessionPassed]);
 
-  function completeSlide(slideId: string) {
+  async function completeSlide(slideId: string) {
     playClick();
     setSessionPassed((m) => (m.has(slideId) ? m : new Set(m).add(slideId)));
-    onMarkViewed(slideId);
+    await onMarkViewed(slideId);
   }
 
   function markCardCompleted(index: number) {
@@ -745,13 +749,21 @@ export default function SlideViewer({
   }
 
   const lastAction = done ? (
-    <Link
-      to={`/kuiz/${module.quiz.id}`}
-      onClick={() => completeSlide(slide.id)}
-      className="transition-soft rounded-full bg-gradient-to-r from-grape to-grape-dark px-7 py-3 text-sm font-bold tracking-wide text-white shadow-lg shadow-grape/25 hover:-translate-y-0.5"
+    <button
+      onClick={async () => {
+        setUnlockingQuiz(true);
+        try {
+          await completeSlide(slide.id);
+          navigate(`/kuiz/${module.quiz.id}`);
+        } finally {
+          setUnlockingQuiz(false);
+        }
+      }}
+      disabled={unlockingQuiz}
+      className="transition-soft rounded-full bg-gradient-to-r from-grape to-grape-dark px-7 py-3 text-sm font-bold tracking-wide text-white shadow-lg shadow-grape/25 hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
     >
-      JAWAB KUIZ →
-    </Link>
+      {unlockingQuiz ? "Menyediakan kuiz…" : quizPassed ? "ULANG KUIZ →" : "JAWAB KUIZ →"}
+    </button>
   ) : (
     <button
       disabled
@@ -819,7 +831,7 @@ export default function SlideViewer({
           <button
             onClick={() => {
               if (!done) return;
-              completeSlide(slide.id);
+              void completeSlide(slide.id);
               setIdx((i) => i + 1);
             }}
             disabled={!done}

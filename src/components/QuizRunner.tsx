@@ -148,8 +148,9 @@ export default function QuizRunner({
               {passed ? "✓ LULUS" : `Markah minimum: ${result.passing_score}%`}
             </p>
             {!passed && (
-              <p className="mx-auto mt-3 max-w-sm text-sm text-slate-500">
+              <p className="mx-auto mt-3 max-w-md text-sm text-slate-500">
                 Ulang kaji slaid modul, kemudian cuba kuiz ini sekali lagi. Percubaan tanpa had.
+                Modul seterusnya hanya dibuka selepas anda lulus.
               </p>
             )}
             {passed && (

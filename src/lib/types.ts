@@ -30,6 +30,10 @@ export interface LessonProgress {
   percentage: number;
   quiz_passed: boolean;
   completed: boolean;
+  /** Semua nota/slaid telah dilihat — kuiz modul dibuka. */
+  slides_completed?: boolean;
+  /** Modul ini dibuka berdasarkan modul sebelumnya yang telah selesai. */
+  unlocked?: boolean;
 }
 
 export interface CertificateInfo {

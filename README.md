@@ -4,7 +4,7 @@ Platform MOOC statik untuk **Pendidikan Islam Tingkatan 1 — Solat Mercu Kejaya
 Dibina dengan **Vite + React + TypeScript + Tailwind CSS**, menggunakan **Supabase**
 untuk auth/database dan **Google Sheets** untuk laporan.
 
-- **7 modul** pembelajaran
+- **7 modul** pembelajaran berurutan — modul seterusnya hanya terbuka selepas nota dan kuiz modul sebelumnya selesai
 - **35 soalan kuiz modul** (5 per modul, lulus 80%, percubaan tanpa had)
 - **20 soalan pentaksiran akhir** (10 objektif, 5 Betul/Salah, 5 padanan)
 - **Satu percubaan** pentaksiran akhir
@@ -54,9 +54,11 @@ Jalankan sama ada:
   2. `supabase/migrations/002_rpc.sql`
   3. `supabase/migrations/003_seed.sql`
   4. `supabase/migrations/004_teachers_and_classes.sql`
+  5. `supabase/migrations/005_sequential_unlock.sql`
 
-Bagi pangkalan data sedia ada, memadai jalankan **`004_teachers_and_classes.sql`**
-sahaja untuk menambah peranan Guru Kelas, senarai kelas tetap dan RPC berskop kelas.
+Bagi pangkalan data sedia ada:
+- jalankan **`004_teachers_and_classes.sql`** untuk peranan Guru Kelas, senarai kelas tetap dan RPC berskop kelas;
+- jalankan **`005_sequential_unlock.sql`** untuk kunci modul berurutan, kunci kuiz sehingga nota selesai dan pembukaan modul seterusnya hanya selepas kuiz lulus.
 
 `003_seed.sql` dijana daripada kandungan frontend. Jika kandungan berubah:
 
@@ -187,13 +189,16 @@ src/
   components/                # UI, slaid, kuiz, pentaksiran, sijil
   pages/                     # halaman pelajar + admin + Guru Kelas
   lib/                       # Supabase, PDF sijil, TTS, kelas, utiliti
-supabase/migrations/         # skema, RPC, seed, guru & kelas (004)
+supabase/migrations/         # skema, RPC, seed, guru & kelas (004), kunci modul (005)
 integrations/google-sheets/  # Apps Script webhook
 public/audio/tts/            # MP3 tajuk, kad dan soalan
 ```
 
 ## 6. Peraturan pentaksiran
 
+- Modul dibuka secara berurutan: modul seterusnya hanya terbuka selepas **semua nota** dan **kuiz modul sebelumnya lulus**.
+- Kuiz modul dikunci sehingga semua nota/slaid modul itu selesai.
+- Jika kuiz gagal, pelajar perlu mengulang kuiz; modul seterusnya kekal terkunci sehingga lulus.
 - Kuiz modul: 5 soalan, lulus 80%, percubaan tanpa had.
 - Pentaksiran akhir: 20 soalan, **satu percubaan sahaja**.
 - Masa bermula apabila pelajar tekan **Mula Pentaksiran**.

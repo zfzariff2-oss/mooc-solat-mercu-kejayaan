@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/hooks/useDashboard";
+import { getModule } from "@/content/publicCourse";
+import { areSlidesCompleted, isLessonUnlocked } from "@/lib/courseProgress";
 import SiteShell, { STUDENT_NAV } from "@/components/SiteShell";
 import LessonCard from "@/components/LessonCard";
 import { Alert, Loading, ProgressBar, Stat } from "@/components/ui";
@@ -36,7 +38,7 @@ export default function DashboardPage() {
   }
 
   const lessons = data.lessons;
-  const firstIncomplete = lessons.find((l) => !l.completed);
+  const firstIncomplete = lessons.find((l, index) => isLessonUnlocked(lessons, index) && !l.completed);
   const allComplete = data.total_lessons > 0 && data.completed_lessons === data.total_lessons;
   const finalStatus = data.final.status;
   const quizPassed = lessons.filter((l) => l.quiz_passed).length;
@@ -44,8 +46,13 @@ export default function DashboardPage() {
   let nextHref = "/pelajaran";
   let nextLabel = "📚 Ulang Kaji";
   if (firstIncomplete) {
-    nextHref = `/pelajaran/${firstIncomplete.lesson_id}`;
-    nextLabel = "▶ Sambung Belajar";
+    const contentModule = getModule(firstIncomplete.lesson_id);
+    const notesDone = areSlidesCompleted(firstIncomplete);
+    nextHref =
+      notesDone && !firstIncomplete.quiz_passed && contentModule
+        ? `/kuiz/${contentModule.quiz.id}`
+        : `/pelajaran/${firstIncomplete.lesson_id}`;
+    nextLabel = notesDone && !firstIncomplete.quiz_passed ? "🧠 Ambil Kuiz" : "▶ Sambung Belajar";
   } else if (finalStatus === "READY") {
     nextHref = "/pentaksiran";
     nextLabel = "📝 Ambil Pentaksiran";
@@ -87,7 +94,7 @@ export default function DashboardPage() {
                 <>
                   Jom sambung belajar! Seterusnya:{" "}
                   <Link
-                    to={`/pelajaran/${firstIncomplete.lesson_id}`}
+                    to={nextHref}
                     className="font-bold text-white underline decoration-white/50 underline-offset-4 hover:decoration-white"
                   >
                     {firstIncomplete.title}
@@ -209,9 +216,19 @@ export default function DashboardPage() {
         </Link>
       </div>
       <section className="mt-4 grid gap-5 md:grid-cols-2" aria-label="Senarai modul">
-        {lessons.map((l) => (
-          <LessonCard key={l.lesson_id} lesson={l} href={`/pelajaran/${l.lesson_id}`} />
-        ))}
+        {lessons.map((l, index) => {
+          const contentModule = getModule(l.lesson_id);
+          return (
+            <LessonCard
+              key={l.lesson_id}
+              lesson={l}
+              href={`/pelajaran/${l.lesson_id}`}
+              quizHref={contentModule ? `/kuiz/${contentModule.quiz.id}` : undefined}
+              unlocked={isLessonUnlocked(lessons, index)}
+              lockedBy={index > 0 ? lessons[index - 1].title : undefined}
+            />
+          );
+        })}
       </section>
 
       <div className="card-pop mt-6 p-6">

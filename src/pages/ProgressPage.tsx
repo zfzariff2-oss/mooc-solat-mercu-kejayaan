@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/hooks/useDashboard";
+import { getModule } from "@/content/publicCourse";
+import { areSlidesCompleted, isLessonUnlocked } from "@/lib/courseProgress";
 import { supabase } from "@/lib/supabase";
 import { cn, formatDateTimeMY, formatDuration } from "@/lib/utils";
 import type { QuizAttemptRow } from "@/lib/types";
@@ -92,41 +94,69 @@ export default function ProgressPage() {
             </div>
           ) : (
             <div className="mt-6 grid gap-5">
-              {data.lessons.map((lesson) => (
-                <Card key={lesson.lesson_id} className="animate-fade-up">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
+              {data.lessons.map((lesson, index) => {
+                const unlocked = isLessonUnlocked(data.lessons, index);
+                const notesDone = areSlidesCompleted(lesson);
+                const contentModule = getModule(lesson.lesson_id);
+                const lessonHref =
+                  notesDone && !lesson.quiz_passed && contentModule
+                    ? `/kuiz/${contentModule.quiz.id}`
+                    : `/pelajaran/${lesson.lesson_id}`;
+                return (
+                  <Card key={lesson.lesson_id} className="animate-fade-up">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          aria-hidden
+                          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-forest/15 to-sky/15 text-xl"
+                        >
+                          {!unlocked ? "🔒" : lesson.completed ? "✅" : "📖"}
+                        </span>
+                        <h2 className={cn("font-display text-xl font-extrabold", unlocked ? "text-slate-900" : "text-slate-500")}>
+                          {lesson.title}
+                        </h2>
+                      </div>
                       <span
-                        aria-hidden
-                        className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-forest/15 to-sky/15 text-xl"
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold",
+                          !unlocked
+                            ? "bg-slate-100 text-slate-500"
+                            : lesson.completed
+                              ? "bg-mint-light text-mint-dark"
+                              : "bg-sky-light text-sky-dark",
+                        )}
                       >
-                        {lesson.completed ? "✅" : "📖"}
+                        {!unlocked ? "🔒 TERKUNCI" : lesson.completed ? "✓ SELESAI" : `${lesson.percentage}%`}
                       </span>
-                      <h2 className="font-display text-xl font-extrabold text-slate-900">{lesson.title}</h2>
                     </div>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold",
-                        lesson.completed ? "bg-mint-light text-mint-dark" : "bg-sky-light text-sky-dark",
+                    <ProgressBar value={lesson.percentage} className="mt-4" />
+                    <p className="mt-3 text-xs font-medium text-slate-500">
+                      {!unlocked ? (
+                        "Selesaikan modul sebelumnya dahulu."
+                      ) : (
+                        <>
+                          📖 Slaid {lesson.slides_viewed}/{lesson.total_slides} • 🧠 Kuiz:{" "}
+                          {lesson.quiz_passed ? "lulus ✓" : notesDone ? "dibuka" : "dikunci"}
+                        </>
                       )}
-                    >
-                      {lesson.completed ? "✓ SELESAI" : `${lesson.percentage}%`}
-                    </span>
-                  </div>
-                  <ProgressBar value={lesson.percentage} className="mt-4" />
-                  <p className="mt-3 text-xs font-medium text-slate-500">
-                    📖 Slaid {lesson.slides_viewed}/{lesson.total_slides} • 🧠 Kuiz: {lesson.quiz_passed ? "lulus ✓" : "belum lulus"}
-                  </p>
-                  <div className="mt-4">
-                    <Link
-                      to={`/pelajaran/${lesson.lesson_id}`}
-                      className="transition-soft inline-flex items-center gap-1 rounded-full bg-forest/10 px-4 py-2 text-sm font-bold text-forest hover:bg-forest hover:text-white"
-                    >
-                      {lesson.completed ? "Ulangkaji" : "Sambung belajar"} →
-                    </Link>
-                  </div>
-                </Card>
-              ))}
+                    </p>
+                    <div className="mt-4">
+                      {unlocked ? (
+                        <Link
+                          to={lessonHref}
+                          className="transition-soft inline-flex items-center gap-1 rounded-full bg-forest/10 px-4 py-2 text-sm font-bold text-forest hover:bg-forest hover:text-white"
+                        >
+                          {lesson.completed ? "Ulangkaji" : notesDone && !lesson.quiz_passed ? "Ambil kuiz" : "Sambung belajar"} →
+                        </Link>
+                      ) : (
+                        <span className="cursor-not-allowed rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-400">
+                          🔒 Terkunci
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
