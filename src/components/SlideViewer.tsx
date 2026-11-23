@@ -485,6 +485,7 @@ export default function SlideViewer({
   const slide = module.slides[idx];
   const total = module.slides.length;
   const revision = initialSet.has(slide.id) || sessionPassed.has(slide.id);
+  const previouslyViewed = initialSet.has(slide.id);
   const completedForSlide = completedCards[slide.id] ?? [];
   const cardsGate = slide.body.length === 0 || completedForSlide.length >= slide.body.length;
   const done = revision || cardsGate;
@@ -650,10 +651,10 @@ export default function SlideViewer({
           <span>Tekan kad pertama dan dengar sehingga kad terakhir untuk membuka slaid seterusnya.</span>
         </div>
       )}
-      {revision && (
+      {previouslyViewed && (
         <p className="mt-4 text-right text-xs font-medium text-sky-dark">📖 Mod ulangkaji — anda bebas mendengar kad satu-satu.</p>
       )}
-      {done && !revision && (
+      {done && !previouslyViewed && (
         <p className="mt-4 text-right text-xs font-medium text-mint-dark">✅ Semua kad selesai — anda boleh teruskan.</p>
       )}
     </div>
