@@ -11,6 +11,8 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 - **Ranking** top 20 + kedudukan sendiri (markah tertinggi, masa terpantas)
 - **Sijil** diberikan selepas pentaksiran dihantar, tanpa mengira markah
 - **Google Sheets sync** setiap kali hantar + butang sync semua
+- **Kesan bunyi** klik / betul / berjaya / salah / ralat
+- **TTS Bahasa Melayu** pada slaid dan soalan (Web Speech API)
 - Admin: pelajar, keputusan, ranking, sijil, tetapan Sheet
 
 ## URL
@@ -158,3 +160,8 @@ integrations/google-sheets/  # Apps Script webhook
   `src/content/course.ts` + `npm run generate:keys`.
 - Jika mahu tambah/edit soalan, ubah fail kandungan, jana semula seed, dan jalankan
   `003_seed.sql` semula.
+- **TTS** menggunakan Web Speech API (suara terbina dalam pelayar). API key
+  Google Cloud TTS **tidak** dimasukkan ke frontend kerana fail statik GitHub Pages
+  boleh didedahkan. Jika mahu suara Google Cloud TTS, ia perlu melalui server proxy /
+  Supabase Edge Function dengan key disimpan sebagai secret.
+- Kesan bunyi menggunakan Web Audio API; tiada fail audio luaran diperlukan.

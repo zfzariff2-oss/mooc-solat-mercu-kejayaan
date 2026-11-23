@@ -1,4 +1,5 @@
 import { formatDateMY, upperName } from "@/lib/utils";
+import { playClick } from "@/lib/sfx";
 
 export default function CertificatePreview({
   studentName,
@@ -41,14 +42,20 @@ export default function CertificatePreview({
       </div>
       <div className="mt-4 flex flex-wrap gap-3 print:hidden">
         <button
-          onClick={() => window.print()}
+          onClick={() => {
+            playClick();
+            window.print();
+          }}
           className="transition-soft rounded-full border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:border-forest/30 hover:text-forest"
         >
           🖨 CETAK / SIMPAN PDF
         </button>
         {onDownload && (
           <button
-            onClick={onDownload}
+            onClick={() => {
+              playClick();
+              onDownload();
+            }}
             disabled={downloadPending}
             className="transition-soft rounded-full bg-forest px-6 py-2.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-forest/25 hover:bg-forest-light disabled:opacity-50"
           >

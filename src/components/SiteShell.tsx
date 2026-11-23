@@ -3,6 +3,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { cn, initials } from "@/lib/utils";
+import { playClick } from "@/lib/sfx";
 
 export interface NavItem {
   href: string;
@@ -30,6 +31,7 @@ export default function SiteShell({
   const [pending, startTransition] = useTransition();
 
   function doLogout() {
+    playClick();
     startTransition(async () => {
       await signOut();
       navigate("/login");
@@ -44,7 +46,10 @@ export default function SiteShell({
           <Link
             key={n.href}
             to={n.href}
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              playClick();
+              setOpen(false);
+            }}
             aria-current={active ? "page" : undefined}
             className={cn(
               "transition-soft flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold",
@@ -109,7 +114,10 @@ export default function SiteShell({
           </div>
         </div>
         <button
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            playClick();
+            setOpen((o) => !o);
+          }}
           aria-expanded={open}
           aria-label="Buka menu"
           className="transition-soft rounded-full border-2 border-forest/20 bg-white px-3.5 py-1.5 text-sm font-bold text-forest hover:border-forest/40"

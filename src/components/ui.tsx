@@ -1,6 +1,7 @@
 /** Komponen UI asas. */
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { playClick } from "@/lib/sfx";
 
 const STAT_TONES = {
   forest: "from-forest/10 to-mint/10 text-forest",
@@ -27,10 +28,14 @@ export function PageHeader({ kicker, title, desc }: { kicker: string; title: str
   );
 }
 
-export function PrimaryButton({ children, className, ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
+export function PrimaryButton({ children, className, onClick, ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
+      onClick={(e) => {
+        playClick();
+        onClick?.(e);
+      }}
       className={cn(
         "transition-soft rounded-full bg-forest px-6 py-2.5 text-sm font-bold tracking-wide text-white shadow-lg shadow-forest/25 hover:bg-forest-light hover:shadow-forest/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
         className,

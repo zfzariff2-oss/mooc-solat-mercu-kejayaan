@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import type { LessonProgress } from "@/lib/types";
 import { Card, ProgressBar } from "./ui";
 import { cn } from "@/lib/utils";
+import { playClick } from "@/lib/sfx";
 
 const TONES = [
   { chip: "bg-forest/10 text-forest", btn: "bg-gradient-to-r from-forest to-forest-light shadow-forest/25", emoji: "📗", ring: "group-hover:ring-forest/20" },
@@ -48,6 +49,7 @@ export default function LessonCard({ lesson, href }: { lesson: LessonProgress; h
           <span className="text-xs font-semibold text-slate-400">{lesson.total_slides} slaid interaktif</span>
           <Link
             to={href}
+            onClick={playClick}
             className={cn(
               "transition-soft rounded-full px-5 py-2 text-xs font-bold tracking-wide text-white shadow-lg hover:-translate-y-0.5",
               tone.btn,

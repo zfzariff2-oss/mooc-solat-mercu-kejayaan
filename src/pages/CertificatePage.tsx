@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/hooks/useDashboard";
 import { COURSE } from "@/content/publicCourse";
 import { downloadCertificatePdf } from "@/lib/certificatePdf";
+import { playError, playSuccess } from "@/lib/sfx";
 import SiteShell, { STUDENT_NAV } from "@/components/SiteShell";
 import CertificatePreview from "@/components/CertificatePreview";
 import { Alert, EmptyState, Loading, PageHeader } from "@/components/ui";
@@ -28,7 +29,9 @@ export default function CertificatePage() {
         issuedAt: cert.issued_at,
         courseTitle: COURSE.title,
       });
+      playSuccess();
     } catch (e) {
+      playError();
       setPdfError(e instanceof Error ? e.message : "Gagal menjana PDF.");
     } finally {
       setPending(false);

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { COURSE } from "@/content/publicCourse";
 import { downloadCertificatePdf } from "@/lib/certificatePdf";
+import { playClick, playError, playSuccess } from "@/lib/sfx";
 import type { AdminCertificateRow } from "@/lib/types";
 import { formatDateMY, formatDuration } from "@/lib/utils";
 import AdminShell from "@/components/AdminShell";
@@ -30,6 +31,7 @@ export default function AdminCertificatesPage() {
   }, []);
 
   async function download(row: AdminCertificateRow) {
+    playClick();
     setPending(row.certificate_number);
     try {
       await downloadCertificatePdf({
@@ -39,7 +41,9 @@ export default function AdminCertificatesPage() {
         issuedAt: row.issued_at,
         courseTitle: COURSE.title,
       });
+      playSuccess();
     } catch (e) {
+      playError();
       setError(e instanceof Error ? e.message : "Gagal menjana PDF.");
     } finally {
       setPending(null);

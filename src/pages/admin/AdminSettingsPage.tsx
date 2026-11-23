@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { playClick, playError, playSuccess } from "@/lib/sfx";
 import AdminShell from "@/components/AdminShell";
 import { Alert, Field, Loading, PageHeader, PrimaryButton, TextInput } from "@/components/ui";
 
@@ -43,11 +44,13 @@ export default function AdminSettingsPage() {
       });
       if (error) setMessage({ kind: "error", text: error.message });
       else {
+        playSuccess();
         setMessage({ kind: "success", text: "Tetapan webhook disimpan." });
         if (secret.trim()) setHasSecret(true);
         setSecret("");
       }
     } catch (err) {
+      playError();
       setMessage({ kind: "error", text: err instanceof Error ? err.message : "Gagal menyimpan." });
     } finally {
       setSaving(false);
@@ -55,21 +58,26 @@ export default function AdminSettingsPage() {
   }
 
   async function syncAll() {
+    playClick();
     setSyncing(true);
     setMessage(null);
     try {
       const { data, error } = await supabase.rpc("sync_all_sheets");
       if (error) {
+        playError();
         setMessage({ kind: "error", text: error.message });
         return;
       }
       const result = data as { ok?: boolean; error?: string } | null;
       if (result && result.ok === false) {
+        playError();
         setMessage({ kind: "error", text: result.error ?? "Sync gagal. Semak URL/secret dan pg_net Supabase." });
       } else {
+        playSuccess();
         setMessage({ kind: "success", text: "Data dihantar ke Google Sheets. Semak Sheet anda." });
       }
     } catch (err) {
+      playError();
       setMessage({ kind: "error", text: err instanceof Error ? err.message : "Gagal sync." });
     } finally {
       setSyncing(false);

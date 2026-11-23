@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
 import { ProgressBar } from "./ui";
+import { playClick, speak, stopSpeaking } from "@/lib/sfx";
 
 const TYPE_META: Record<string, { label: string; icon: string; header: string; chip: string }> = {
   TEXT: { label: "Bacaan", icon: "📖", header: "from-sky to-sky-dark", chip: "bg-sky/10 text-sky-dark" },
@@ -127,6 +128,7 @@ export default function SlideViewer({
   const [idx, setIdx] = useState(0);
   const [sessionPassed, setSessionPassed] = useState<Set<string>>(() => new Set());
   const [completedCards, setCompletedCards] = useState<Record<string, number[]>>({});
+  const [speaking, setSpeaking] = useState(false);
 
   const initialSet = useMemo(() => new Set(initiallyViewed), [initiallyViewed]);
   const slide = module.slides[idx];
@@ -138,12 +140,35 @@ export default function SlideViewer({
   const isLast = idx === total - 1;
   const pct = total === 0 ? 0 : Math.round(((idx + 1) / total) * 100);
 
+  useEffect(() => {
+    stopSpeaking();
+    setSpeaking(false);
+  }, [idx]);
+
+  useEffect(() => {
+    return () => stopSpeaking();
+  }, []);
+
+  function toggleSpeak() {
+    playClick();
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+      return;
+    }
+    const text = `${slide.title}. ${slide.body.join(" ")}`;
+    setSpeaking(true);
+    speak(text, () => setSpeaking(false));
+  }
+
   function completeSlide(slideId: string) {
+    playClick();
     setSessionPassed((m) => (m.has(slideId) ? m : new Set(m).add(slideId)));
     onMarkViewed(slideId);
   }
 
   function markCardCompleted(index: number) {
+    playClick();
     setCompletedCards((m) => {
       const arr = m[slide.id] ?? [];
       if (arr.includes(index)) return m;
@@ -196,9 +221,17 @@ export default function SlideViewer({
             );
           })}
         </div>
-        <p className="mt-3 text-[11px] font-medium text-slate-400">
-          {module.num}: {module.title}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] font-medium text-slate-400">
+            {module.num}: {module.title}
+          </p>
+          <button
+            onClick={toggleSpeak}
+            className="transition-soft inline-flex items-center gap-1.5 rounded-full bg-forest/10 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest hover:text-white"
+          >
+            {speaking ? "⏹ Hentikan" : "🔊 Dengar Slaid"}
+          </button>
+        </div>
       </div>
 
       <LessonSlide
@@ -211,7 +244,10 @@ export default function SlideViewer({
 
       <div className="mt-6 flex items-center justify-between gap-3">
         <button
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          onClick={() => {
+            playClick();
+            setIdx((i) => Math.max(0, i - 1));
+          }}
           disabled={idx === 0}
           className="transition-soft rounded-full border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:border-forest/30 hover:text-forest disabled:opacity-30"
         >

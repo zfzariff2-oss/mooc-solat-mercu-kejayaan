@@ -5,6 +5,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { FINAL_QUIZ, FINAL_QUESTION_COUNT } from "@/content/publicCourse";
 import { supabase } from "@/lib/supabase";
 import { cn, formatDuration } from "@/lib/utils";
+import { playError } from "@/lib/sfx";
 import type { ReviewItem } from "@/lib/types";
 import SiteShell, { STUDENT_NAV } from "@/components/SiteShell";
 import AssessmentRunner from "@/components/AssessmentRunner";
@@ -49,11 +50,13 @@ export default function AssessmentPage() {
     try {
       const { error: rpcError } = await supabase.rpc("start_final_assessment");
       if (rpcError) {
+        playError();
         setStartError(rpcError.message);
         return;
       }
       await reload();
     } catch (e) {
+      playError();
       setStartError(e instanceof Error ? e.message : "Gagal memulakan pentaksiran.");
     } finally {
       setStarting(false);

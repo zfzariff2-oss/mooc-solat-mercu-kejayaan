@@ -4,6 +4,7 @@ import type { Question } from "@/content/publicCourse";
 import type { QuizSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { playClick, playError, playSuccess, playWrong, speak } from "@/lib/sfx";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -48,6 +49,7 @@ export default function QuizRunner({
 
   function pick(questionId: string, a: Answer) {
     if (result) return;
+    playClick();
     setAnswers((m) => ({ ...m, [questionId]: a }));
   }
 
@@ -66,13 +68,18 @@ export default function QuizRunner({
         p_answers: payload,
       });
       if (rpcError) {
+        playError();
         setError(rpcError.message);
         return;
       }
-      setResult(data as QuizSubmitResult);
+      const submitted = data as QuizSubmitResult;
+      setResult(submitted);
+      if (submitted.passed) playSuccess();
+      else playWrong();
       onSubmitted?.();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
+      playError();
       setError(e instanceof Error ? e.message : "Gagal menghantar kuiz.");
     } finally {
       setSubmitting(false);
@@ -80,10 +87,20 @@ export default function QuizRunner({
   }
 
   function retry() {
+    playClick();
     setResult(null);
     setAnswers({});
     setIdx(0);
     setError(null);
+  }
+
+  function readQuestion() {
+    if (!q) return;
+    playClick();
+    const opts = visibleOptions(q)
+      .map((o) => `${o}. ${optionText(q, o)}`)
+      .join(". ");
+    speak(`${q.question}. ${opts}`);
   }
 
   if (result) {
@@ -126,6 +143,7 @@ export default function QuizRunner({
               <div className="mt-5 flex flex-wrap justify-center gap-3">
                 <Link
                   to={nextHref}
+                  onClick={playClick}
                   className="transition-soft rounded-full bg-forest px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-forest/25 hover:bg-forest-light"
                 >
                   Teruskan belajar →
@@ -206,7 +224,10 @@ export default function QuizRunner({
           {questions.map((qq, i) => (
             <button
               key={qq.id}
-              onClick={() => setIdx(i)}
+              onClick={() => {
+                playClick();
+                setIdx(i);
+              }}
               tabIndex={-1}
               className={cn(
                 "h-2.5 flex-1 rounded-full",
@@ -218,7 +239,15 @@ export default function QuizRunner({
       </div>
 
       <div key={q.id} className="card-pop animate-pop-in mt-5 p-6 md:p-8">
-        <p className="font-display text-xl font-extrabold leading-relaxed text-slate-900 md:text-2xl">{q.question}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="font-display text-xl font-extrabold leading-relaxed text-slate-900 md:text-2xl">{q.question}</p>
+          <button
+            onClick={readQuestion}
+            className="transition-soft shrink-0 rounded-full bg-forest/10 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest hover:text-white"
+          >
+            🔊 Baca Soalan
+          </button>
+        </div>
         <div className="mt-5 grid gap-3" role="radiogroup" aria-label={`Soalan ${idx + 1}`}>
           {visibleOptions(q).map((opt) => {
             const selected = answers[q.id] === opt;
@@ -258,7 +287,10 @@ export default function QuizRunner({
 
       <div className="mt-6 flex items-center justify-between gap-3">
         <button
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          onClick={() => {
+            playClick();
+            setIdx((i) => Math.max(0, i - 1));
+          }}
           disabled={idx === 0}
           className="transition-soft rounded-full border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:border-forest/30 hover:text-forest disabled:opacity-30"
         >

@@ -4,6 +4,7 @@ import type { Question } from "@/content/publicCourse";
 import type { FinalSubmitResult } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { cn, formatClock } from "@/lib/utils";
+import { playClick, playError, playSuccess, speak } from "@/lib/sfx";
 import { Alert, PrimaryButton } from "./ui";
 
 type Answer = "A" | "B" | "C" | "D";
@@ -55,6 +56,7 @@ export default function AssessmentRunner({
 
   function pick(questionId: string, a: Answer) {
     if (result) return;
+    playClick();
     setAnswers((m) => ({ ...m, [questionId]: a }));
   }
 
@@ -72,17 +74,29 @@ export default function AssessmentRunner({
         p_answers: payload,
       });
       if (rpcError) {
+        playError();
         setError(rpcError.message);
         return;
       }
       setResult(data as FinalSubmitResult);
+      playSuccess();
       onSubmitted?.();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
+      playError();
       setError(e instanceof Error ? e.message : "Gagal menghantar pentaksiran.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function readQuestion() {
+    if (!q) return;
+    playClick();
+    const opts = visibleOptions(q)
+      .map((o) => `${o}. ${optionText(q, o)}`)
+      .join(". ");
+    speak(`${q.question}. ${opts}`);
   }
 
   if (result) {
@@ -115,12 +129,14 @@ export default function AssessmentRunner({
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
                 to="/sijil"
+                onClick={playClick}
                 className="transition-soft rounded-full bg-gradient-to-r from-sun to-coral px-7 py-3 text-sm font-bold tracking-wide text-white shadow-lg shadow-coral/25 hover:-translate-y-0.5"
               >
                 🏆 LIHAT SIJIL
               </Link>
               <Link
                 to="/ranking"
+                onClick={playClick}
                 className="transition-soft rounded-full border-2 border-forest/20 bg-white px-6 py-2.5 text-sm font-bold text-forest hover:bg-forest hover:text-white"
               >
                 🏅 Lihat Ranking
@@ -185,7 +201,10 @@ export default function AssessmentRunner({
           {questions.map((qq, i) => (
             <button
               key={qq.id}
-              onClick={() => setIdx(i)}
+              onClick={() => {
+                playClick();
+                setIdx(i);
+              }}
               tabIndex={-1}
               className={cn(
                 "h-2.5 flex-1 rounded-full",
@@ -200,7 +219,15 @@ export default function AssessmentRunner({
       </div>
 
       <div key={q.id} className="card-pop animate-pop-in mt-5 p-6 md:p-8">
-        <p className="font-display text-xl font-extrabold leading-relaxed text-slate-900 md:text-2xl">{q.question}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="font-display text-xl font-extrabold leading-relaxed text-slate-900 md:text-2xl">{q.question}</p>
+          <button
+            onClick={readQuestion}
+            className="transition-soft shrink-0 rounded-full bg-forest/10 px-3 py-1.5 text-[11px] font-bold text-forest hover:bg-forest hover:text-white"
+          >
+            🔊 Baca Soalan
+          </button>
+        </div>
         <div className="mt-5 grid gap-3" role="radiogroup" aria-label={`Soalan ${idx + 1}`}>
           {visibleOptions(q).map((opt) => {
             const selected = answers[q.id] === opt;
@@ -240,7 +267,10 @@ export default function AssessmentRunner({
 
       <div className="mt-6 flex items-center justify-between gap-3">
         <button
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          onClick={() => {
+            playClick();
+            setIdx((i) => Math.max(0, i - 1));
+          }}
           disabled={idx === 0}
           className="transition-soft rounded-full border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 hover:border-forest/30 hover:text-forest disabled:opacity-30"
         >
