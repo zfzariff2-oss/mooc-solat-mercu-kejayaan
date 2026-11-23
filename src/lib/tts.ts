@@ -3,6 +3,7 @@
  * Jika fail audio tiada/ gagal, fallback ke Web Speech API.
  */
 import { speak, stopSpeaking } from "./sfx";
+import { assetUrl } from "./asset";
 
 let currentAudio: HTMLAudioElement | null = null;
 let sequenceAudio: HTMLAudioElement | null = null;
@@ -21,11 +22,11 @@ export interface SequenceCallbacks {
 }
 
 export function cardAudioUrl(slideId: string, index: number): string {
-  return `/audio/tts/cards/${slideId}-${index}.mp3`;
+  return assetUrl(`audio/tts/cards/${slideId}-${index}.mp3`);
 }
 
 export function questionAudioUrl(questionId: string): string {
-  return `/audio/tts/questions/${questionId}.mp3`;
+  return assetUrl(`audio/tts/questions/${questionId}.mp3`);
 }
 
 function cleanupAudio(audio: HTMLAudioElement | null): void {

@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { formatDateMY, upperName } from "./utils";
+import { assetUrl } from "./asset";
 
 export interface CertificatePdfInput {
   studentName: string;
@@ -18,7 +19,7 @@ export async function buildCertificatePdf(input: CertificatePdfInput): Promise<U
   const sans = await doc.embedFont(StandardFonts.Helvetica);
   const sansBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  const logoResponse = await fetch("/logo-sekolah.png");
+  const logoResponse = await fetch(assetUrl("logo-sekolah.png"));
   if (!logoResponse.ok) throw new Error("Logo sekolah tidak dapat dimuatkan.");
   const logo = await doc.embedPng(await logoResponse.arrayBuffer());
 

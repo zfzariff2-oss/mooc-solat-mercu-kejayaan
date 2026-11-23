@@ -1,5 +1,6 @@
 import { formatDateMY, upperName } from "@/lib/utils";
 import { playClick } from "@/lib/sfx";
+import { assetUrl } from "@/lib/asset";
 
 export default function CertificatePreview({
   studentName,
@@ -22,7 +23,7 @@ export default function CertificatePreview({
     <div className="certificate-print">
       <div className="border-[3px] border-[#a68b4f] bg-[#fdfcf9] p-2">
         <div className="border border-[#d6c08a] px-6 py-10 text-center">
-          <img src="/logo-sekolah.png" alt="Logo SMKJT" className="mx-auto mb-2 h-20 w-20 object-contain" />
+          <img src={assetUrl("logo-sekolah.png")} alt="Logo SMKJT" className="mx-auto mb-2 h-20 w-20 object-contain" />
           <p className="text-[10px] font-bold tracking-[0.18em] text-[#a68b4f] md:text-xs">
             SEKOLAH MENENGAH KEBANGSAAN JALAN TIGA
           </p>

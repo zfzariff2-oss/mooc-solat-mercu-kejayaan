@@ -13,13 +13,13 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 - **Google Sheets sync** setiap kali hantar + butang sync semua
 - **Kesan bunyi** klik / betul / berjaya / salah / ralat
 - **TTS Bahasa Melayu** pada setiap kad & soalan (audio Google Cloud TTS; fallback Web Speech API)
-- **Layout kad berbeza** mengikut modul: editorial, checklist, timeline, bento, quote
+- **Layout kad berbeza** mengikut modul: editorial, checklist, timeline, bento, split, infografik manfaat, quote
 - **Audio auto-sambung**: tekan kad pertama → kad 1, 2, 3… dimainkan dan ditanda selesai automatik
 - Admin: pelajar, keputusan, ranking, sijil, tetapan Sheet
 
 ## URL
 
-- GitHub Pages: `https://zfzariff2-oss.github.io/`
+- GitHub Pages: `https://zfzariff2-oss.github.io/mooc-solat-mercu-kejayaan/`
 - Supabase: `https://ghrzskkcxkezczxlnugr.supabase.co`
 - Google Sheet: `1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4`
 
@@ -81,10 +81,10 @@ penjanaan dan **tidak** disimpan dalam repo/frontend.
    - Enable.
    - Masukkan **Client ID** dan **Client Secret**.
 3. Di Supabase → **Authentication → URL Configuration**:
-   - Site URL: `https://zfzariff2-oss.github.io`
+   - Site URL: `https://zfzariff2-oss.github.io/mooc-solat-mercu-kejayaan`
    - Redirect URLs:
      - `http://localhost:5173/**`
-     - `https://zfzariff2-oss.github.io/**`
+     - `https://zfzariff2-oss.github.io/mooc-solat-mercu-kejayaan/**`
 
 Admin: emel **`zfzariff2@gmail.com`** akan diberi peranan `ADMIN` secara automatik oleh trigger.
 Emel lain akan menjadi `STUDENT` dan perlu mengisi nama penuh + kelas.
@@ -115,19 +115,19 @@ Tab yang akan dicipta:
 
 ## 4. Deploy GitHub Pages
 
-Repo: `zfzariff2-oss.github.io` (public, user site).
+Repo: `mooc-solat-mercu-kejayaan` (public, project site).
 
 ```bash
 git init
 git add .
 git commit -m "MOOC Solat Mercu Kejayaan"
 git branch -M main
-git remote add origin https://github.com/zfzariff2-oss/zfzariff2-oss.github.io.git
+git remote add origin https://github.com/zfzariff2-oss/mooc-solat-mercu-kejayaan.git
 git push -u origin main
 ```
 
 GitHub Actions (`.github/workflows/deploy.yml`) akan build dan deploy ke
-`https://zfzariff2-oss.github.io/`.
+`https://zfzariff2-oss.github.io/mooc-solat-mercu-kejayaan/`.
 
 Jika perlu, di GitHub → **Settings → Pages** pilih source **GitHub Actions**.
 

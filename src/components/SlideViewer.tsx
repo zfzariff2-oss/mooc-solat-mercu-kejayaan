@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ const CARD_THEMES = [
   { card: "from-forest-dark/10 via-white to-sun/10", border: "border-forest/25", badge: "bg-gradient-to-br from-forest-dark to-sun", label: "text-forest-dark", ring: "hover:border-forest/40" },
 ] as const;
 
-type CardVariant = "editorial" | "checklist" | "timeline" | "bento" | "quote";
+type CardVariant = "editorial" | "checklist" | "timeline" | "bento" | "quote" | "split" | "benefit";
 type CardState = "ready" | "locked" | "playing" | "completed";
 type CardTheme = (typeof CARD_THEMES)[number];
 
@@ -347,6 +347,254 @@ function LessonSlide({
     return "locked";
   }
 
+  function activate(state: CardState) {
+    if (state !== "ready") return {};
+    return {
+      role: "button" as const,
+      tabIndex: 0,
+      onClick: startSequence,
+      onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          startSequence();
+        }
+      },
+    };
+  }
+
+  function renderCard(text: string, index: number) {
+    const state = stateFor(index);
+    const activation = activate(state);
+    const title = cardTitle(text, index);
+    const displayText = text.replace(/^\d+\.\s+/, "");
+    const bodyText = stripTitlePrefix(displayText, title);
+    const bodyClass = cn(
+      "mt-1 leading-6 text-slate-700",
+      state === "locked" && "line-clamp-2 opacity-60",
+      (state === "ready" || state === "playing") && "text-[15px] leading-7",
+    );
+    const controls = (
+      <CardControls
+        state={state}
+        replayEnabled={replayEnabled}
+        readyLabel={readyLabel}
+        onReplay={replay}
+        index={index}
+      />
+    );
+
+    if (variant === "editorial") {
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "border-b border-slate-200/70 py-5 last:border-b-0",
+            state === "ready" && "-mx-4 cursor-pointer rounded-2xl bg-forest/5 px-4",
+            state === "playing" && "-mx-4 rounded-2xl bg-forest/5 px-4",
+            state === "locked" && "opacity-70",
+          )}
+        >
+          <CardContent
+            variant="editorial"
+            state={state}
+            text={text}
+            index={index}
+            theme={theme}
+            replayEnabled={replayEnabled}
+            readyLabel={readyLabel}
+            onReplay={replay}
+          />
+        </div>
+      );
+    }
+
+    if (variant === "checklist") {
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "border-b border-slate-100 px-5 py-4 last:border-b-0",
+            state === "ready" && "cursor-pointer bg-sky/5",
+            state === "playing" && "bg-grape/5",
+            state === "completed" && "bg-mint-light/20",
+            state === "locked" && "opacity-70",
+          )}
+        >
+          <CardContent
+            variant="checklist"
+            state={state}
+            text={text}
+            index={index}
+            theme={theme}
+            replayEnabled={replayEnabled}
+            readyLabel={readyLabel}
+            onReplay={replay}
+          />
+        </div>
+      );
+    }
+
+    if (variant === "timeline") {
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "relative py-4",
+            state === "ready" && "cursor-pointer",
+            state === "locked" && "opacity-60",
+          )}
+        >
+          <CardContent
+            variant="timeline"
+            state={state}
+            text={text}
+            index={index}
+            theme={theme}
+            replayEnabled={replayEnabled}
+            readyLabel={readyLabel}
+            onReplay={replay}
+          />
+        </div>
+      );
+    }
+
+    if (variant === "quote") {
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "relative border-b border-sand/30 py-6 last:border-b-0",
+            state === "ready" && "cursor-pointer rounded-2xl bg-white/70 px-4 shadow-sm",
+            state === "playing" && "rounded-2xl bg-white px-4 shadow-sm",
+            state === "locked" && "opacity-60",
+          )}
+        >
+          <CardContent
+            variant="quote"
+            state={state}
+            text={text}
+            index={index}
+            theme={theme}
+            replayEnabled={replayEnabled}
+            readyLabel={readyLabel}
+            onReplay={replay}
+          />
+        </div>
+      );
+    }
+
+    if (variant === "split") {
+      const benefitTone = /hikmah|kelebihan|manfaat/i.test(slide.title);
+      const splitTone = benefitTone
+        ? { panel: "from-mint to-mint-dark", label: "Hikmah", icon: "🌿" }
+        : { panel: "from-coral to-coral-dark", label: "Akibat", icon: "⚠️" };
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "flex overflow-hidden rounded-2xl border-2 transition-soft",
+            state === "ready" &&
+              "cursor-pointer border-forest/20 ring-2 ring-forest/15 hover:-translate-y-0.5 hover:shadow-md",
+            state === "playing" && "border-grape/40 ring-2 ring-grape/15 shadow-lg",
+            state === "completed" && "border-mint/40",
+            state === "locked" && "border-slate-200 opacity-70",
+          )}
+        >
+          <div
+            className={cn(
+              "flex w-20 shrink-0 flex-col items-center justify-center gap-1 bg-gradient-to-br px-2 py-4 text-white",
+              splitTone.panel,
+            )}
+          >
+            <span aria-hidden className="text-2xl">{state === "completed" ? "✓" : splitTone.icon}</span>
+            <span className="text-[9px] font-extrabold uppercase tracking-[0.18em]">{splitTone.label}</span>
+          </div>
+          <div className="min-w-0 flex-1 bg-white p-4 md:p-5">
+            <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>
+            <p className={bodyClass}>{bodyText}</p>
+            {controls}
+          </div>
+        </div>
+      );
+    }
+
+    if (variant === "benefit") {
+      const { lead, rest } = splitLead(displayText);
+      const headline = lead || bodyText;
+      const detail = lead ? rest : "";
+      return (
+        <div
+          key={index}
+          {...activation}
+          className={cn(
+            "rounded-2xl border-2 bg-white p-4 transition-soft",
+            state === "ready" &&
+              "cursor-pointer border-forest/20 ring-2 ring-forest/15 hover:-translate-y-0.5 hover:shadow-md",
+            state === "playing" && "border-grape/40 ring-2 ring-grape/15 shadow-lg",
+            state === "completed" && "border-mint/40",
+            state === "locked" && "border-slate-200 opacity-70",
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-xl",
+                theme.card,
+              )}
+            >
+              {state === "completed" ? "✅" : CARD_ICONS[index % CARD_ICONS.length]}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", theme.label)}>{title}</p>
+              <p className="font-display mt-1 text-sm font-extrabold leading-6 text-slate-900">{headline}</p>
+              {detail && (
+                <p className={cn("mt-1 text-xs leading-5 text-slate-500", state === "locked" && "line-clamp-2")}>
+                  {detail}
+                </p>
+              )}
+              {controls}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={index}
+        {...activation}
+        className={cn(
+          "relative overflow-hidden rounded-3xl border-2 p-5 transition-soft",
+          slide.body.length >= 3 && index === 0 && "md:col-span-2",
+          state === "completed" ? "border-mint/50 bg-mint-light/30" : "bg-gradient-to-br",
+          state !== "completed" && theme.card,
+          state === "completed" ? undefined : state === "playing" ? "border-grape/40" : theme.border,
+          state === "ready" &&
+            "cursor-pointer ring-2 ring-forest/15 hover:-translate-y-0.5 hover:shadow-md",
+          state === "playing" && "ring-2 ring-grape/15 shadow-lg",
+          state === "locked" && "opacity-75",
+        )}
+      >
+        <CardContent
+          variant="bento"
+          state={state}
+          text={text}
+          index={index}
+          theme={theme}
+          replayEnabled={replayEnabled}
+          readyLabel={readyLabel}
+          onReplay={replay}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="card-pop animate-fade-up overflow-hidden">
       <div className={cn("relative overflow-hidden bg-gradient-to-r px-6 py-6 text-white md:px-10 md:py-8", meta.header)}>
@@ -407,60 +655,26 @@ function LessonSlide({
           </div>
         )}
 
-        <div className={cn("grid gap-3", variant === "bento" && "md:grid-cols-2", variant === "quote" && "gap-4")}>
-          {slide.body.map((text, i) => {
-            const state = stateFor(i);
-            const borderClass =
-              state === "completed" ? "border-mint/50" : state === "playing" ? "border-grape/40" : variant === "quote" ? "border-sand/50" : theme.border;
-            const backgroundClass =
-              state === "completed"
-                ? "bg-mint-light/30"
-                : variant === "quote"
-                  ? "bg-gradient-to-br from-sun-light/70 via-white to-coral-light/40"
-                  : `bg-gradient-to-br ${theme.card}`;
-            return (
-              <div
-                key={i}
-                role={state === "ready" ? "button" : undefined}
-                tabIndex={state === "ready" ? 0 : undefined}
-                onClick={state === "ready" ? startSequence : undefined}
-                onKeyDown={
-                  state === "ready"
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          startSequence();
-                        }
-                      }
-                    : undefined
-                }
-                className={cn(
-                  "transition-soft relative rounded-2xl border-2 p-4 md:p-5",
-                  variant === "editorial" && "border-l-4",
-                  variant === "bento" && "overflow-hidden",
-                  variant === "timeline" &&
-                    "before:absolute before:left-[31px] before:top-12 before:bottom-2 before:w-px before:bg-slate-200 before:content-['']",
-                  borderClass,
-                  backgroundClass,
-                  state === "ready" && "cursor-pointer ring-2 ring-forest/15 hover:-translate-y-0.5 hover:shadow-md",
-                  state === "playing" && "ring-2 ring-grape/15 shadow-lg",
-                  state === "locked" && "opacity-80",
-                )}
-              >
-                <CardContent
-                  variant={variant}
-                  state={state}
-                  text={text}
-                  index={i}
-                  theme={theme}
-                  replayEnabled={replayEnabled}
-                  readyLabel={readyLabel}
-                  onReplay={replay}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {variant === "checklist" ? (
+          <div className="card-pop overflow-hidden !p-0">{slide.body.map((text, i) => renderCard(text, i))}</div>
+        ) : variant === "timeline" ? (
+          <div className="relative">
+            <span aria-hidden className="absolute bottom-2 left-[15px] top-2 w-px bg-slate-200" />
+            {slide.body.map((text, i) => renderCard(text, i))}
+          </div>
+        ) : variant === "editorial" ? (
+          <div>{slide.body.map((text, i) => renderCard(text, i))}</div>
+        ) : variant === "quote" ? (
+          <div>{slide.body.map((text, i) => renderCard(text, i))}</div>
+        ) : variant === "split" ? (
+          <div className="grid gap-3">{slide.body.map((text, i) => renderCard(text, i))}</div>
+        ) : variant === "benefit" ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {slide.body.map((text, i) => renderCard(text, i))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">{slide.body.map((text, i) => renderCard(text, i))}</div>
+        )}
         {slide.body.length === 0 && <p className="text-sm text-slate-400">Tiada kandungan teks.</p>}
       </div>
     </div>
@@ -497,11 +711,15 @@ export default function SlideViewer({
       ? "checklist"
       : module.order === 3
         ? "timeline"
-        : module.order === 4 || module.order === 6
+        : module.order === 4
           ? "bento"
-          : module.order === 7
-            ? "quote"
-            : "editorial";
+          : module.order === 5
+            ? "split"
+            : module.order === 6
+              ? "benefit"
+              : module.order === 7
+                ? "quote"
+                : "editorial";
   const variant: CardVariant = slide.type === "QUOTE" || slide.type === "SUMMARY" ? "quote" : moduleVariant;
 
   useEffect(() => {
