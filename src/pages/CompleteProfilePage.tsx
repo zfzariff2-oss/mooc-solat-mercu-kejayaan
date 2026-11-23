@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { Alert, Field, PrimaryButton, TextInput } from "@/components/ui";
+import { CLASS_OPTIONS, isClassOption, normalizeClassName } from "@/lib/classes";
+import { Alert, Field, PrimaryButton, SelectInput, TextInput } from "@/components/ui";
 
 export default function CompleteProfilePage() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function CompleteProfilePage() {
         String(form.get("name") ?? ""),
         String(form.get("className") ?? ""),
       );
-      if (next.role === "ADMIN") navigate("/admin", { replace: true });
+      if (next.role === "ADMIN" || next.role === "TEACHER") navigate("/admin", { replace: true });
       else navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan profil.");
@@ -92,16 +93,27 @@ export default function CompleteProfilePage() {
             </p>
 
             <Field label="KELAS" htmlFor="className">
-              <TextInput
+              <SelectInput
                 id="className"
                 name="className"
-                placeholder="cth. 1 Amanah"
-                defaultValue={profile?.class_name ?? ""}
+                defaultValue={
+                  isClassOption(profile?.class_name) ? normalizeClassName(profile?.class_name) : ""
+                }
                 required
-                minLength={2}
-                maxLength={30}
-              />
+              >
+                <option value="" disabled>
+                  — Pilih kelas anda —
+                </option>
+                {CLASS_OPTIONS.map((className) => (
+                  <option key={className} value={className}>
+                    {className}
+                  </option>
+                ))}
+              </SelectInput>
             </Field>
+            <p className="-mt-3 text-xs leading-5 text-slate-400">
+              Pilih kelas anda daripada senarai. Kelas digunakan oleh guru untuk memantau kemajuan.
+            </p>
 
             {error && <Alert>{error}</Alert>}
 

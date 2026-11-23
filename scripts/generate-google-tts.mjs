@@ -1,5 +1,5 @@
 /**
- * Menjana audio Google Cloud TTS untuk setiap kad slaid dan soalan.
+ * Menjana audio Google Cloud TTS untuk tajuk slaid, setiap kad slaid dan soalan.
  *
  * Key TIDAK disimpan dalam repo. Jalankan:
  *   GOOGLE_TTS_API_KEY="..." node scripts/generate-google-tts.mjs
@@ -9,6 +9,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeTtsText } from "../src/lib/ttsText.ts";
+import { narrationForCard, slideCardVariant } from "../src/lib/cardText.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -22,8 +24,10 @@ if (!API_KEY) {
 
 const force = process.argv.includes("--force");
 const outRoot = path.join(root, "public", "audio", "tts");
+const titlesDir = path.join(outRoot, "titles");
 const cardsDir = path.join(outRoot, "cards");
 const questionsDir = path.join(outRoot, "questions");
+fs.mkdirSync(titlesDir, { recursive: true });
 fs.mkdirSync(cardsDir, { recursive: true });
 fs.mkdirSync(questionsDir, { recursive: true });
 
@@ -78,12 +82,20 @@ const cardCount = MODULES.reduce(
   (total, m) => total + m.slides.reduce((sum, s) => sum + s.body.length, 0),
   0,
 );
-console.log(`Menjana ${cardCount} audio kad…`);
+const slideCount = MODULES.reduce((total, m) => total + m.slides.length, 0);
+console.log(`Menjana ${slideCount} audio tajuk, ${cardCount} audio kad…`);
 
 for (const module of MODULES) {
   for (const slide of module.slides) {
+    await synthesize(
+      normalizeTtsText(`${slide.title}.`),
+      path.join(titlesDir, `${slide.id}.mp3`),
+      `${slide.id}-title`,
+    );
+
+    const variant = slideCardVariant(module.order, slide.type);
     for (let i = 0; i < slide.body.length; i++) {
-      const text = slide.body[i];
+      const text = normalizeTtsText(narrationForCard(slide.body[i], i, variant));
       const outPath = path.join(cardsDir, `${slide.id}-${i}.mp3`);
       await synthesize(text, outPath, `${slide.id}-${i}`);
     }
@@ -98,7 +110,7 @@ for (const q of allQuestions) {
     .filter((t) => t && t.trim())
     .map((t, idx) => `Pilihan ${"ABCD"[idx]}. ${t}`)
     .join(". ");
-  const text = `${q.question}. ${options}`;
+  const text = normalizeTtsText(`${q.question}. ${options}`);
   const outPath = path.join(questionsDir, `${q.id}.mp3`);
   await synthesize(text, outPath, q.id);
 }

@@ -4,6 +4,7 @@
  */
 import { speak, stopSpeaking } from "./sfx";
 import { assetUrl } from "./asset";
+import { normalizeTtsText } from "./ttsText";
 
 let currentAudio: HTMLAudioElement | null = null;
 let sequenceAudio: HTMLAudioElement | null = null;
@@ -23,6 +24,10 @@ export interface SequenceCallbacks {
 
 export function cardAudioUrl(slideId: string, index: number): string {
   return assetUrl(`audio/tts/cards/${slideId}-${index}.mp3`);
+}
+
+export function slideTitleAudioUrl(slideId: string): string {
+  return assetUrl(`audio/tts/titles/${slideId}.mp3`);
 }
 
 export function questionAudioUrl(questionId: string): string {
@@ -78,7 +83,7 @@ export function playAudioOrSpeak(url: string, fallbackText: string, onEnd?: () =
   audio.onerror = () => {
     if (currentAudio !== audio) return;
     currentAudio = null;
-    speak(fallbackText, onEnd);
+    speak(normalizeTtsText(fallbackText), onEnd);
   };
 
   const promise = audio.play();
@@ -86,7 +91,7 @@ export function playAudioOrSpeak(url: string, fallbackText: string, onEnd?: () =
     promise.catch(() => {
       if (currentAudio !== audio) return;
       currentAudio = null;
-      speak(fallbackText, onEnd);
+      speak(normalizeTtsText(fallbackText), onEnd);
     });
   }
 }
@@ -139,7 +144,7 @@ export function playCardSequence(items: SequenceItem[], callbacks: SequenceCallb
       if (settled || fallbackStarted || token !== sequenceToken) return;
       fallbackStarted = true;
       audio.onerror = null;
-      speak(item.text, () => finish(true, error));
+      speak(normalizeTtsText(item.text), () => finish(true, error));
     };
 
     audio.onended = () => finish(true);

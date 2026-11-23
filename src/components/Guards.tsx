@@ -65,7 +65,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     }
     return <ProfileMissing onRetry={refreshProfile} />;
   }
-  if (profile.role === "ADMIN") return <Navigate to="/admin" replace />;
+  if (profile.role === "ADMIN" || profile.role === "TEACHER") {
+    return <Navigate to="/admin" replace />;
+  }
   if (profile.role === "STUDENT" && !profile.profile_completed) {
     return <Navigate to="/lengkapi-profil" replace />;
   }
@@ -82,17 +84,39 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     if (profileError) return <Alert>{profileError}</Alert>;
     return <ProfileMissing onRetry={refreshProfile} />;
   }
-  if (profile.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
+  if (profile.role !== "ADMIN") return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+}
+
+/** Admin atau Guru Kelas — data sebenar sudah ditapis oleh RPC Supabase. */
+export function RequireStaff({ children }: { children: ReactNode }) {
+  const { session, profile, loading, profileError, refreshProfile } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <FullPageLoading />;
+  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!profile) {
+    if (profileError) return <Alert>{profileError}</Alert>;
+    return <ProfileMissing onRetry={refreshProfile} />;
+  }
+  if (profile.role !== "ADMIN" && profile.role !== "TEACHER") {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 
 export function RequireIncompleteProfile({ children }: { children: ReactNode }) {
   const { session, profile, loading, refreshProfile } = useAuth();
   if (loading) return <FullPageLoading />;
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/login" />;
   if (!profile) return <ProfileMissing onRetry={refreshProfile} />;
-  if (profile.role === "ADMIN" || profile.profile_completed) {
-    return <Navigate to={profile.role === "ADMIN" ? "/admin" : "/dashboard"} replace />;
+  if (profile.role === "ADMIN" || profile.role === "TEACHER" || profile.profile_completed) {
+    return (
+      <Navigate
+        to={profile.role === "ADMIN" || profile.role === "TEACHER" ? "/admin" : "/dashboard"}
+        replace
+      />
+    );
   }
   return <>{children}</>;
 }
@@ -101,7 +125,9 @@ export function PublicOnly({ children }: { children: ReactNode }) {
   const { session, profile, loading } = useAuth();
   if (loading) return <FullPageLoading />;
   if (session && profile) {
-    if (profile.role === "ADMIN") return <Navigate to="/admin" replace />;
+    if (profile.role === "ADMIN" || profile.role === "TEACHER") {
+      return <Navigate to="/admin" replace />;
+    }
     if (!profile.profile_completed) return <Navigate to="/lengkapi-profil" replace />;
     return <Navigate to="/dashboard" replace />;
   }

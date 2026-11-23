@@ -159,5 +159,14 @@ export const ADMIN_NAV: NavItem[] = [
   { href: "/admin/keputusan", label: "Keputusan", icon: "🧠" },
   { href: "/admin/ranking", label: "Ranking", icon: "🏅" },
   { href: "/admin/sijil", label: "Sijil", icon: "🏆" },
+  { href: "/admin/guru", label: "Guru Kelas", icon: "👩‍🏫" },
   { href: "/admin/tetapan", label: "Tetapan Sheet", icon: "📤" },
+];
+
+export const TEACHER_NAV: NavItem[] = [
+  { href: "/admin", label: "Dashboard", icon: "📊" },
+  { href: "/admin/pelajar", label: "Pelajar", icon: "🎓" },
+  { href: "/admin/keputusan", label: "Keputusan", icon: "🧠" },
+  { href: "/admin/ranking", label: "Ranking", icon: "🏅" },
+  { href: "/admin/sijil", label: "Sijil", icon: "🏆" },
 ];

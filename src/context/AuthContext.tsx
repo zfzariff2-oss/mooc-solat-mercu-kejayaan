@@ -42,8 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
     setProfileError(null);
-    setProfile((data as Profile | null) ?? null);
-    return (data as Profile | null) ?? null;
+
+    const base = (data as Omit<Profile, "assigned_classes"> | null) ?? null;
+    if (!base) {
+      setProfile(null);
+      return null;
+    }
+
+    let resolved: Profile = { ...base, assigned_classes: [] };
+
+    if (base.role === "TEACHER") {
+      const { data: assignments } = await supabase
+        .from("teacher_assignments")
+        .select("class_name")
+        .eq("email", base.email.toLowerCase())
+        .order("class_name");
+      resolved = {
+        ...resolved,
+        assigned_classes: ((assignments as Array<{ class_name: string }> | null) ?? []).map(
+          (row) => row.class_name,
+        ),
+      };
+    }
+
+    setProfile(resolved);
+    return resolved;
   }, []);
 
   useEffect(() => {
@@ -118,7 +141,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         p_class_name: className,
       });
       if (error) throw error;
-      const merged = { ...(profile ?? {}), ...(data as Partial<Profile>) } as Profile;
+      const merged = {
+        ...(profile ?? {}),
+        ...(data as Partial<Profile>),
+        assigned_classes: profile?.assigned_classes ?? [],
+      } as Profile;
       setProfile(merged);
       return merged;
     },

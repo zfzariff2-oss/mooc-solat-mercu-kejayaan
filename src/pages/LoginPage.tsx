@@ -31,7 +31,7 @@ export default function LoginPage() {
         setError("Profil tidak dijumpai.");
         return;
       }
-      if (profile.role === "ADMIN") navigate("/admin", { replace: true });
+      if (profile.role === "ADMIN" || profile.role === "TEACHER") navigate("/admin", { replace: true });
       else if (!profile.profile_completed) navigate("/lengkapi-profil", { replace: true });
       else navigate("/dashboard", { replace: true });
     } catch (err) {

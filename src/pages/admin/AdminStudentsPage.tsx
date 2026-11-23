@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { AdminStudent } from "@/lib/types";
 import { formatDateTimeMY, formatDuration } from "@/lib/utils";
@@ -7,6 +8,8 @@ import AdminShell from "@/components/AdminShell";
 import { Alert, EmptyState, Loading, PageHeader } from "@/components/ui";
 
 export default function AdminStudentsPage() {
+  const { profile } = useAuth();
+  const isTeacher = profile?.role === "TEACHER";
   const [rows, setRows] = useState<AdminStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +31,15 @@ export default function AdminStudentsPage() {
 
   return (
     <AdminShell>
-      <PageHeader kicker="PENGURUSAN PELAJAR" title="Pelajar" desc="Pelajar mendaftar sendiri melalui akaun Google. Nama penuh dan kelas diisi pada log masuk pertama." />
+      <PageHeader
+        kicker={isTeacher ? "PELAJAR KELAS SAYA" : "PENGURUSAN PELAJAR"}
+        title="Pelajar"
+        desc={
+          isTeacher
+            ? `Hanya pelajar dalam kelas ${profile?.assigned_classes?.join(", ") || "anda"} dipaparkan.`
+            : "Pelajar mendaftar sendiri melalui akaun Google. Nama penuh dan kelas diisi pada log masuk pertama."
+        }
+      />
       {loading ? (
         <Loading text="Memuatkan pelajar…" />
       ) : error ? (

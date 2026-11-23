@@ -54,7 +54,7 @@ export default function GoogleSignIn() {
           setError("Profil tidak dijumpai selepas log masuk. Sila hubungi guru.");
           return;
         }
-        if (profile.role === "ADMIN") {
+        if (profile.role === "ADMIN" || profile.role === "TEACHER") {
           navigate("/admin", { replace: true });
         } else if (!profile.profile_completed) {
           navigate("/lengkapi-profil", { replace: true });

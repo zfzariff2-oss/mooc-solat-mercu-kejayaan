@@ -1,5 +1,10 @@
 /** Komponen UI asas. */
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/utils";
 import { playClick } from "@/lib/sfx";
 
@@ -71,6 +76,18 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       className={cn(
         "transition-soft w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 outline-none placeholder:text-slate-300 focus:border-forest focus:ring-4 focus:ring-forest/10",
+        props.className,
+      )}
+    />
+  );
+}
+
+export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={cn(
+        "transition-soft w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 outline-none focus:border-forest focus:ring-4 focus:ring-forest/10",
         props.className,
       )}
     />

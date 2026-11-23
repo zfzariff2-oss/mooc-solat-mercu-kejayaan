@@ -1,5 +1,11 @@
 import { Route, Routes } from "react-router-dom";
-import { PublicOnly, RequireAdmin, RequireAuth, RequireIncompleteProfile } from "@/components/Guards";
+import {
+  PublicOnly,
+  RequireAdmin,
+  RequireAuth,
+  RequireIncompleteProfile,
+  RequireStaff,
+} from "@/components/Guards";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import CompleteProfilePage from "@/pages/CompleteProfilePage";
@@ -21,6 +27,7 @@ import AdminResultsPage from "@/pages/admin/AdminResultsPage";
 import AdminRankingPage from "@/pages/admin/AdminRankingPage";
 import AdminCertificatesPage from "@/pages/admin/AdminCertificatesPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
+import AdminTeachersPage from "@/pages/admin/AdminTeachersPage";
 import { Link } from "react-router-dom";
 
 function NotFoundPage() {
@@ -137,48 +144,56 @@ export default function App() {
       <Route
         path="/admin"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminDashboardPage />
-          </RequireAdmin>
+          </RequireStaff>
         }
       />
       <Route
         path="/admin/pelajar"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminStudentsPage />
-          </RequireAdmin>
+          </RequireStaff>
         }
       />
       <Route
         path="/admin/pelajar/:studentId"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminStudentDetailPage />
-          </RequireAdmin>
+          </RequireStaff>
         }
       />
       <Route
         path="/admin/keputusan"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminResultsPage />
-          </RequireAdmin>
+          </RequireStaff>
         }
       />
       <Route
         path="/admin/ranking"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminRankingPage />
-          </RequireAdmin>
+          </RequireStaff>
         }
       />
       <Route
         path="/admin/sijil"
         element={
-          <RequireAdmin>
+          <RequireStaff>
             <AdminCertificatesPage />
+          </RequireStaff>
+        }
+      />
+      <Route
+        path="/admin/guru"
+        element={
+          <RequireAdmin>
+            <AdminTeachersPage />
           </RequireAdmin>
         }
       />

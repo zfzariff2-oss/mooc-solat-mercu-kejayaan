@@ -1,4 +1,4 @@
-export type Role = "STUDENT" | "ADMIN";
+export type Role = "STUDENT" | "ADMIN" | "TEACHER";
 
 export interface Profile {
   id: string;
@@ -8,6 +8,17 @@ export interface Profile {
   role: Role;
   profile_completed: boolean;
   created_at: string;
+  /** Senarai kelas untuk guru; kosong bagi pelajar/admin. */
+  assigned_classes: string[];
+}
+
+export interface TeacherAccessRow {
+  email: string;
+  full_name: string | null;
+  status: "AKTIF" | "MENUNGGU" | "PERLU_SEMAK";
+  classes: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LessonProgress {

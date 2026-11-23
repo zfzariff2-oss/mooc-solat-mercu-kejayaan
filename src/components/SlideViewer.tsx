@@ -4,7 +4,15 @@ import type { Module, Slide } from "@/content/publicCourse";
 import { cn } from "@/lib/utils";
 import { Alert, ProgressBar } from "./ui";
 import { playClick, playSuccess } from "@/lib/sfx";
-import { cardAudioUrl, playAudioOrSpeak, playCardSequence, stopAllAudio } from "@/lib/tts";
+import { cardAudioUrl, playAudioOrSpeak, playCardSequence, slideTitleAudioUrl, stopAllAudio } from "@/lib/tts";
+import {
+  cardTitle,
+  narrationForCard,
+  slideCardVariant,
+  splitLead,
+  stripTitlePrefix,
+  type CardVariant,
+} from "@/lib/cardText";
 
 const TYPE_META: Record<string, { label: string; icon: string; header: string; chip: string }> = {
   TEXT: { label: "Bacaan", icon: "📖", header: "from-sky to-sky-dark", chip: "bg-sky/10 text-sky-dark" },
@@ -25,48 +33,8 @@ const CARD_THEMES = [
   { card: "from-forest-dark/10 via-white to-sun/10", border: "border-forest/25", badge: "bg-gradient-to-br from-forest-dark to-sun", label: "text-forest-dark", ring: "hover:border-forest/40" },
 ] as const;
 
-type CardVariant = "editorial" | "checklist" | "timeline" | "bento" | "quote" | "split" | "benefit";
 type CardState = "ready" | "locked" | "playing" | "completed";
 type CardTheme = (typeof CARD_THEMES)[number];
-
-function cardTitle(text: string, index: number): string {
-  const num = text.match(/^(\d+)\.\s+/);
-  if (num) return `Perkara ${num[1]}`;
-  if (/^maksud/i.test(text)) return "Maksud";
-  if (/^dari segi/i.test(text)) return "Pengertian";
-  if (/^syarat wajib/i.test(text)) return "Syarat wajib";
-  if (/^syarat sah/i.test(text)) return "Syarat sah";
-  if (/^syarat/i.test(text)) return "Syarat";
-  if (/^antara akibat/i.test(text)) return "Akibat";
-  if (/^antara/i.test(text)) return "Antara";
-  if (/^islam/i.test(text)) return "Islam";
-  if (/^baligh/i.test(text)) return "Baligh";
-  if (/^berakal/i.test(text)) return "Berakal";
-  if (/^suci/i.test(text)) return "Suci";
-  return `Huraian ${index + 1}`;
-}
-
-function splitLead(text: string): { lead: string; rest: string } {
-  const colon = text.search(/[:：]/);
-  if (colon > 0 && colon <= 70) {
-    return { lead: text.slice(0, colon).trim(), rest: text.slice(colon + 1).trim() };
-  }
-  const sentence = text.match(/^(.{12,90}?[.!?])\s+(.*)$/s);
-  if (sentence) return { lead: sentence[1].trim(), rest: sentence[2].trim() };
-  return { lead: "", rest: text };
-}
-
-function stripTitlePrefix(text: string, title: string): string {
-  if (/^(Huraian|Perkara|Antara)\b/i.test(title)) return text;
-  const lower = text.toLowerCase();
-  const t = title.toLowerCase();
-  const next = text.charAt(title.length);
-  if (lower.startsWith(t) && text.length > title.length && /[\s:：.-]/.test(next)) {
-    const remainder = text.slice(title.length).replace(/^[\s:：.-]+/, "");
-    return remainder.charAt(0).toUpperCase() + remainder.slice(1);
-  }
-  return text;
-}
 
 function Equalizer() {
   return (
@@ -295,7 +263,9 @@ function LessonSlide({
     allComplete ? "completed" : "idle",
   );
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [introActive, setIntroActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const introTokenRef = useRef(0);
   const replayEnabled = allComplete || sequenceState === "completed";
   const readyLabel = sequenceState === "paused" ? "Sambung Dengar" : "Mula Dengar";
 
@@ -303,46 +273,58 @@ function LessonSlide({
     if (completedIndices.length >= slide.body.length && sequenceState !== "completed") {
       setSequenceState("completed");
       setCurrentIndex(null);
+      setIntroActive(false);
     }
   }, [completedIndices.length, slide.body.length, sequenceState]);
 
   function startSequence() {
     if (allComplete) return;
     const start = firstIncomplete >= 0 ? firstIncomplete : 0;
+    const token = ++introTokenRef.current;
     playClick();
     setError(null);
     setSequenceState("playing");
     setCurrentIndex(start);
-    const items = slide.body.slice(start).map((text, offset) => ({
-      url: cardAudioUrl(slide.id, start + offset),
-      text,
-    }));
-    playCardSequence(items, {
-      onStart: (i) => setCurrentIndex(start + i),
-      onEnd: (i) => onCardCompleted(start + i),
-      onComplete: () => {
-        setSequenceState("completed");
-        setCurrentIndex(null);
-        playSuccess();
-      },
-      onError: (i) => {
-        setSequenceState("paused");
-        setCurrentIndex(start + i);
-        setError("Audio tidak dapat dimainkan. Tekan Sambung untuk cuba lagi.");
-      },
+    setIntroActive(true);
+
+    playAudioOrSpeak(slideTitleAudioUrl(slide.id), slide.title, () => {
+      if (token !== introTokenRef.current) return;
+      setIntroActive(false);
+      const items = slide.body.slice(start).map((text, offset) => ({
+        url: cardAudioUrl(slide.id, start + offset),
+        text: narrationForCard(text, start + offset, variant),
+      }));
+      playCardSequence(items, {
+        onStart: (i) => setCurrentIndex(start + i),
+        onEnd: (i) => onCardCompleted(start + i),
+        onComplete: () => {
+          setSequenceState("completed");
+          setCurrentIndex(null);
+          setIntroActive(false);
+          playSuccess();
+        },
+        onError: (i) => {
+          setSequenceState("paused");
+          setCurrentIndex(start + i);
+          setIntroActive(false);
+          setError("Audio tidak dapat dimainkan. Tekan Sambung untuk cuba lagi.");
+        },
+      });
     });
   }
 
   function pauseSequence() {
+    introTokenRef.current += 1;
     playClick();
     stopAllAudio();
     setSequenceState("paused");
     setCurrentIndex(null);
+    setIntroActive(false);
   }
 
   function replay(index: number) {
     playClick();
-    playAudioOrSpeak(cardAudioUrl(slide.id, index), slide.body[index]);
+    playAudioOrSpeak(cardAudioUrl(slide.id, index), narrationForCard(slide.body[index], index, variant));
   }
 
   function stateFor(index: number): CardState {
@@ -637,7 +619,9 @@ function LessonSlide({
         {sequenceState === "playing" && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-forest/15 bg-forest/5 px-4 py-3">
             <p className="text-xs font-bold text-forest">
-              🔊 Sedang memainkan kad {(currentIndex ?? 0) + 1} / {slide.body.length}…
+              {introActive
+                ? "🔊 Membaca tajuk slaid…"
+                : `🔊 Sedang memainkan kad ${(currentIndex ?? 0) + 1} / ${slide.body.length}…`}
             </p>
             <button
               onClick={pauseSequence}
@@ -711,21 +695,7 @@ export default function SlideViewer({
   const isLast = idx === total - 1;
   const pct = total === 0 ? 0 : Math.round(((idx + 1) / total) * 100);
 
-  const moduleVariant: CardVariant =
-    module.order === 2
-      ? "checklist"
-      : module.order === 3
-        ? "timeline"
-        : module.order === 4
-          ? "bento"
-          : module.order === 5
-            ? "split"
-            : module.order === 6
-              ? "benefit"
-              : module.order === 7
-                ? "quote"
-                : "editorial";
-  const variant: CardVariant = slide.type === "QUOTE" || slide.type === "SUMMARY" ? "quote" : moduleVariant;
+  const variant: CardVariant = slideCardVariant(module.order, slide.type);
 
   useEffect(() => {
     stopAllAudio();

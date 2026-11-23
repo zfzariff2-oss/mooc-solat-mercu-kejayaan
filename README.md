@@ -12,10 +12,12 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 - **Sijil** diberikan selepas pentaksiran dihantar, tanpa mengira markah
 - **Google Sheets sync** setiap kali hantar + butang sync semua
 - **Kesan bunyi** klik / betul / berjaya / salah / ralat
-- **TTS Bahasa Melayu** pada setiap kad & soalan (audio Google Cloud TTS; fallback Web Speech API)
+- **TTS Bahasa Melayu** membaca tajuk slaid, label setiap kad, kemudian kandungan; singkatan `SAW` / `SWT` / `RA` disebut penuh
 - **Layout kad berbeza** mengikut modul: editorial, checklist, timeline, bento, split, infografik manfaat, quote
-- **Audio auto-sambung**: tekan kad pertama → kad 1, 2, 3… dimainkan dan ditanda selesai automatik
-- Admin: pelajar, keputusan, ranking, sijil, tetapan Sheet
+- **Audio auto-sambung**: tekan kad pertama → tajuk slaid → kad 1, 2, 3… dimainkan dan ditanda selesai automatik
+- **Kelas pelajar** dipilih daripada senarai tetap 11 kelas Tingkatan 1
+- Admin: pelajar, keputusan, ranking, sijil, Guru Kelas, tetapan Sheet
+- **Guru Kelas**: satu atau lebih kelas, hanya melihat pelajar dan data kelas yang ditetapkan
 
 ## URL
 
@@ -51,6 +53,10 @@ Jalankan sama ada:
   1. `supabase/migrations/001_schema.sql`
   2. `supabase/migrations/002_rpc.sql`
   3. `supabase/migrations/003_seed.sql`
+  4. `supabase/migrations/004_teachers_and_classes.sql`
+
+Bagi pangkalan data sedia ada, memadai jalankan **`004_teachers_and_classes.sql`**
+sahaja untuk menambah peranan Guru Kelas, senarai kelas tetap dan RPC berskop kelas.
 
 `003_seed.sql` dijana daripada kandungan frontend. Jika kandungan berubah:
 
@@ -60,14 +66,30 @@ npm run generate:keys
 
 Kemudian jalankan semula `003_seed.sql`.
 
-Audio TTS Bahasa Melayu dijana sebagai fail MP3 statik:
+Audio TTS Bahasa Melayu dijana sebagai fail MP3 statik untuk **tajuk slaid**,
+**setiap kad** (label + kandungan) dan **soalan**:
 
 ```bash
 GOOGLE_TTS_API_KEY="..." npm run generate:tts
 ```
 
-Guna `-- --force` untuk jana semula semua fail. Key hanya digunakan semasa
-penjanaan dan **tidak** disimpan dalam repo/frontend.
+Di Windows PowerShell:
+
+```powershell
+$env:GOOGLE_TTS_API_KEY="..."; npm run generate:tts
+```
+
+Guna `npm run generate:tts -- --force` untuk jana semula semua fail. Key hanya
+digunakan semasa penjanaan dan **tidak** disimpan dalam repo/frontend. Jika key
+pernah dikongsi, hadkan penggunaannya pada Google Cloud Console dan tukar key baharu.
+
+Fail audio disimpan di:
+
+- `public/audio/tts/titles/<slide-id>.mp3`
+- `public/audio/tts/cards/<slide-id>-<index>.mp3`
+- `public/audio/tts/questions/<question-id>.mp3`
+
+Jika fail audio tiada, frontend menggunakan Web Speech API sebagai fallback.
 
 ### Auth Google (GIS)
 
@@ -88,6 +110,31 @@ penjanaan dan **tidak** disimpan dalam repo/frontend.
 
 Admin: emel **`zfzariff2@gmail.com`** akan diberi peranan `ADMIN` secara automatik oleh trigger.
 Emel lain akan menjadi `STUDENT` dan perlu mengisi nama penuh + kelas.
+
+### Guru Kelas
+
+1. Log masuk sebagai admin → **Guru Kelas**.
+2. Masukkan emel Google guru dan tandakan satu atau lebih kelas (11 kelas tersedia):
+   `1 AMANAH`, `1 BUDIMAN`, `1 CEKAL`, `1 DAMAI`, `1 EHSAN`, `1 FIKRAH`,
+   `1 GIGIH`, `1 JUJUR`, `1 IKHLAS`, `1 KUKUH`, `1 MURNI`.
+3. Jika guru belum pernah log masuk, status menunjukkan **Menunggu Log Masuk**.
+   Apabila guru log masuk dengan emel tersebut, akaunnya automatik menjadi
+   `TEACHER` (label **Guru Kelas**).
+4. Guru hanya nampak dashboard, pelajar, keputusan, ranking dan sijil bagi kelas
+   yang ditetapkan. Halaman **Guru Kelas** dan **Tetapan Sheet** hanya untuk admin.
+5. Untuk membuang akses, tekan **Buang** dalam senarai Guru Kelas. Akaun guru
+   kembali menjadi pelajar dan perlu melengkapkan profil semula jika digunakan
+   sebagai pelajar.
+
+Penapisan kelas dibuat di pelayan melalui RPC Supabase (`staff_class_scope()`),
+bukan sekadar disembunyikan di frontend.
+
+### Senarai kelas pelajar
+
+Pelajar memilih kelas daripada dropdown semasa melengkapkan profil. Senarai
+kelas diselaraskan antara frontend (`src/lib/classes.ts`) dan pengesahan SQL
+(`public.is_valid_class()`). Jika senarai kelas berubah, kemas kini kedua-dua
+tempat dan jalankan semula `004_teachers_and_classes.sql`.
 
 ## 3. Google Sheets (Apps Script)
 
@@ -136,12 +183,13 @@ Jika perlu, di GitHub → **Settings → Pages** pilih source **GitHub Actions**
 ```text
 src/
   content/course.ts          # 7 modul, 35 soalan kuiz, 20 soalan akhir
-  context/AuthContext.tsx    # sesi GIS + profil
+  context/AuthContext.tsx    # sesi GIS + profil + kelas guru
   components/                # UI, slaid, kuiz, pentaksiran, sijil
-  pages/                     # halaman pelajar + admin
-  lib/                       # Supabase, PDF sijil, utiliti
-supabase/migrations/         # skema, RPC, seed
+  pages/                     # halaman pelajar + admin + Guru Kelas
+  lib/                       # Supabase, PDF sijil, TTS, kelas, utiliti
+supabase/migrations/         # skema, RPC, seed, guru & kelas (004)
 integrations/google-sheets/  # Apps Script webhook
+public/audio/tts/            # MP3 tajuk, kad dan soalan
 ```
 
 ## 6. Peraturan pentaksiran
@@ -161,6 +209,9 @@ integrations/google-sheets/  # Apps Script webhook
 - **Jangan** letak `service_role` key dalam frontend.
 - Jawapan betul hanya dalam `question_keys`; pelajar tidak boleh membaca jadual itu.
 - Pemarkahan dibuat dalam RPC `security definer`.
+- Data Guru Kelas ditapis di pelayan mengikut `staff_class_scope()`; guru tidak
+  boleh mengakses kelas lain melalui RPC atau URL.
+- Halaman **Guru Kelas** dan **Tetapan Sheet** hanya boleh diakses `ADMIN`.
 - Apps Script webhook dilindungi `WEBHOOK_SECRET`.
 - Client Secret Google hanya dalam dashboard Supabase, bukan dalam repo.
 - Jangan commit token GitHub. Revoke token yang pernah dikongsi.
@@ -173,14 +224,20 @@ integrations/google-sheets/  # Apps Script webhook
   `003_seed.sql` semula.
 - **Aliran audio kad:**
   - Pelajar tekan kad pertama (**Mula Dengar**).
-  - Audio kad 1 dimainkan, kemudian auto-sambung ke kad 2, 3, dan seterusnya.
+  - Audio **tajuk slaid** dimainkan dahulu, kemudian audio kad 1, 2, 3… secara auto-sambung.
+  - Setiap audio kad menyebut **label kad** (contoh: “Maksud”, “Syarat wajib”, “Perkara 1”) sebelum kandungannya.
+  - Singkatan **SAW**, **SWT** dan **RA** disebut penuh dalam audio: “Sallallahu alaihi wasallam”, “Subhanahu wa ta'ala” dan “Radiyallahu anhu”.
   - Setiap kad ditanda **✓ Selesai** selepas audionya tamat.
   - Butang **⏸ Hentikan** menghentikan audio; kad yang belum selesai menunjukkan **Sambung Dengar**.
   - Selepas semua kad selesai, butang **🔊 Dengar** satu-satu muncul dan butang **Seterusnya** dibuka.
   - Jika pelajar keluar slaid di tengah, slaid perlu dimulakan semula dari kad pertama.
 - **TTS** menggunakan audio MP3 Google Cloud TTS yang dijana melalui
-  `scripts/generate-google-tts.mjs` dan disimpan di `public/audio/tts/`. Key
-  hanya digunakan semasa penjanaan; ia tidak dimasukkan ke frontend. Jika fail
-  audio tiada, frontend fallback ke Web Speech API.
+  `scripts/generate-google-tts.mjs` dan disimpan di `public/audio/tts/{titles,cards,questions}`.
+  Key hanya digunakan semasa penjanaan; ia tidak dimasukkan ke frontend. Jika fail
+  audio tiada, frontend fallback ke Web Speech API dengan normalisasi singkatan yang sama.
+- **Peranan Guru Kelas** menggunakan `profiles.role = 'TEACHER'` dan jadual
+  `teacher_assignments(email, class_name)`. Satu guru boleh memegang lebih daripada
+  satu kelas. Skop kelas dikuatkuasakan dalam RPC Supabase, jadi guru tidak boleh
+  membaca kelas lain walaupun menukar URL.
 - Kesan bunyi (klik/betul/salah/ralat) menggunakan Web Audio API; tiada fail
   audio luaran diperlukan untuk kesan bunyi.
