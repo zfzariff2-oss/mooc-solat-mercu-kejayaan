@@ -43,7 +43,7 @@ export default function CertificatePage() {
       nav={STUDENT_NAV}
     >
       <PageHeader
-        kicker="SIJIL PENYELESAIAN"
+        kicker="SIJIL PENYERTAAN"
         title="Sijil Saya"
         desc="Sijil dikeluarkan selepas anda menghantar Pentaksiran Akhir, tanpa mengira markah."
       />

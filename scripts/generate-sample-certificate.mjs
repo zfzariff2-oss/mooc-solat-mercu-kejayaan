@@ -27,6 +27,7 @@ async function build() {
   const serifNormal = await doc.embedFont(StandardFonts.TimesRoman);
   const sans = await doc.embedFont(StandardFonts.Helvetica);
   const sansBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await doc.embedPng(fs.readFileSync(path.join(root, "public", "logo-sekolah.png")));
 
   const gold = rgb(0.65, 0.54, 0.31);
   const forest = rgb(0.01, 0.17, 0.13);
@@ -35,19 +36,27 @@ async function build() {
   page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: gold, borderWidth: 3 });
   page.drawRectangle({ x: 34, y: 34, width: width - 68, height: height - 68, borderColor: gold, borderWidth: 1 });
 
+  const logoSize = 80;
+  page.drawImage(logo, {
+    x: (width - logoSize) / 2,
+    y: height - 120,
+    width: logoSize,
+    height: logoSize,
+  });
+
   const cx = (text, font, size, y, color = forest) => {
     const w = font.widthOfTextAtSize(text, size);
     page.drawText(text, { x: (width - w) / 2, y, size, font, color });
   };
 
-  cx("SIJIL PENYELESAIAN", serif, 38, height - 140);
-  cx("SOLAT MERCU KEJAYAAN", sans, 15, height - 172, gold);
-  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 222);
-  cx("AHMAD BIN ABDULLAH", serif, 32, height - 272);
-  cx("Kelas: 1 AMANAH", sansBold, 14, height - 305);
-  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(new Date().toISOString())}`, sans, 12, height - 332);
-  cx("No. Sijil: SMK-2026-99999", sans, 12, height - 356);
-  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 384);
+  cx("SIJIL PENYERTAAN", serif, 38, height - 160);
+  cx("SOLAT MERCU KEJAYAAN", sans, 15, height - 195, gold);
+  cx("Dengan ini disahkan bahawa", serifNormal, 13, height - 245);
+  cx("AHMAD BIN ABDULLAH", serif, 32, height - 295);
+  cx("Kelas: 1 AMANAH", sansBold, 14, height - 328);
+  cx(`Telah berjaya menamatkan kursus pada ${formatDateMY(new Date().toISOString())}`, sans, 12, height - 355);
+  cx("No. Sijil: SMK-2026-99999", sans, 12, height - 379);
+  cx("Tahniah dan teruskan usaha menjadi mukmin yang bertakwa.", sans, 11, height - 407);
   cx("Sahkan di /sijil/[nombor-sijil]", sans, 9, 60, gold);
   cx("CONTOH PAPARAN — BUKAN SIJIL RASMI", sans, 9, 44, rgb(0.55, 0.55, 0.55));
 
