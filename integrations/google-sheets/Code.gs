@@ -2,7 +2,7 @@
  * MOOC Solat Mercu Kejayaan — Google Sheets webhook (Apps Script).
  *
  * LANGKAH:
- * 1. Buka Google Sheet: https://docs.google.com/spreadsheets/d/1w510h2dkCr72RSBookGYRlAWUY5HGtgDHvjBEXrhLtY
+ * 1. Buka Google Sheet: https://docs.google.com/spreadsheets/d/1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4
  * 2. Extensions → Apps Script → tampal fail ini dalam Code.gs.
  * 3. Jalankan fungsi `setup` sekali (Run → setup). Lihat Execution log untuk WEBHOOK_SECRET.
  * 4. Deploy → New deployment → Web app:
@@ -12,7 +12,7 @@
  * 5. Di panel admin MOOC → Tetapan Sheet: masukkan URL + secret, kemudian Sync semua.
  */
 
-const SHEET_ID = "1w510h2dkCr72RSBookGYRlAWUY5HGtgDHvjBEXrhLtY";
+const SHEET_ID = "1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4";
 
 const HEADERS = {
   Pelajar: [

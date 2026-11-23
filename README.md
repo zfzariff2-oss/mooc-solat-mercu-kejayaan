@@ -17,7 +17,7 @@ untuk auth/database dan **Google Sheets** untuk laporan.
 
 - GitHub Pages: `https://zfzariff2-oss.github.io/`
 - Supabase: `https://ghrzskkcxkezczxlnugr.supabase.co`
-- Google Sheet: `1w510h2dkCr72RSBookGYRlAWUY5HGtgDHvjBEXrhLtY`
+- Google Sheet: `1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4`
 
 ## 1. Jalankan secara lokal
 
@@ -79,7 +79,7 @@ Emel lain akan menjadi `STUDENT` dan perlu mengisi nama penuh + kelas.
 ## 3. Google Sheets (Apps Script)
 
 1. Buka Google Sheet:
-   `https://docs.google.com/spreadsheets/d/1w510h2dkCr72RSBookGYRlAWUY5HGtgDHvjBEXrhLtY`
+   `https://docs.google.com/spreadsheets/d/1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4`
 2. **Extensions → Apps Script**.
 3. Tampal kandungan `integrations/google-sheets/Code.gs` ke `Code.gs`.
 4. Jalankan fungsi **`setup`** sekali. Lihat **Execution log** untuk `WEBHOOK_SECRET`.

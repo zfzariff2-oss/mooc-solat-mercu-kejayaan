@@ -132,7 +132,7 @@ export default function AdminSettingsPage() {
           <div className="card-pop p-6 text-sm leading-7 text-slate-600">
             <h2 className="font-display text-xl font-extrabold text-slate-900">Langkah ringkas</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5">
-              <li>Buka Google Sheet anda (ID: <span className="font-mono text-xs">1w510h2dkCr72RSBookGYRlAWUY5HGtgDHvjBEXrhLtY</span>).</li>
+              <li>Buka Google Sheet anda (ID: <span className="font-mono text-xs">1XNTSigIP-OdgvaSczIlLaFpAJUtq3gXle5OqGtgUWL4</span>).</li>
               <li>Extensions → Apps Script → tampal kandungan <span className="font-mono">Code.gs</span>.</li>
               <li>Project Settings → Script Properties → tambah <span className="font-mono">WEBHOOK_SECRET</span> dengan nilai rawak.</li>
               <li>Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone → Deploy.</li>
